@@ -6,8 +6,11 @@ This library was originally written to help with modifying data prior to chartin
 Most of the functions require the data in the form of arrays of points (i.e. x and y coordinates). So:
 ```[ [x1, y1], [x2, y2], [x3, y3] ]```
 
+## Download
+Use the **ssci.js** or **ssci.min.js** files from the distrib folder. 
+
 ## Dependencies
-This library relies on [big.js](https://github.com/MikeMcl/big.js/). This is used as overflow errors occur otherwise when fitting the polynomials.
+This library relies on [big.js](https://github.com/MikeMcl/big.js/). This is used as overflow errors occur otherwise when fitting polynomials. The functions that are definitely affected are **smooth.quadraticBig**, **reg.polyBig** and **reg.determinantBig**. 
 
 ## Usage
 Add the following tags to your HTML:
