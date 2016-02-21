@@ -3,14 +3,19 @@
 
 This library was originally written to help with modifying data prior to charting it via the D3 JavaScript library.
 
-Most of the functions require the data in the form of arrays of points (i.e. x and y coordinates). So:
-```[ [x1, y1], [x2, y2], [x3, y3] ]```
+Most of the functions no longer require the data in the form of arrays of points (i.e. x and y coordinates) but access the data via functions passed to the function. So data is generally passed via a:
+```.data(data)```
+function. And x and y coordinates are specified by passing a function via:
+```.x(function(d){ return d.year })```
+In this example the x data is in the year variable within the data object.
 
 ## Download
 Use the **ssci.js** or **ssci.min.js** files from the distrib folder. 
 
 ## Dependencies
-This library relies on [big.js](https://github.com/MikeMcl/big.js/). This is used as overflow errors occur otherwise when fitting polynomials. The functions that are definitely affected are **smooth.quadraticBig**, **reg.polyBig** and **reg.determinantBig**. 
+This library relies on [big.js](https://github.com/MikeMcl/big.js/). This is used as overflow errors occur otherwise when fitting polynomials. The functions that are definitely affected are **smooth.quadraticBig**, **reg.polyBig** and **reg.determinantBig**.
+
+I've also changed the DP variable within this library to 120 as 20 decimal places is not enough to stop odd results being generated via the quadratic smoothing algorithm.  
 
 ## Usage
 Add the following tags to your HTML:
@@ -19,7 +24,7 @@ Add the following tags to your HTML:
 <script src="your-folder/ssci.js"></script>
 ```
 
-## Website
+## Documentation
 See [ssci](http://www.surveyscience.co.uk/html/ssci/ssci_js.html) for more details and a more detailed description of the functions.
 
 ## Functions
@@ -46,7 +51,6 @@ See [ssci](http://www.surveyscience.co.uk/html/ssci/ssci_js.html) for more detai
 ### Market Research Functions
 - Negative binomial distribution
 - Cumulative NBD
-- Gamma function
 - NBD a parameter
 
 ### Time Series Functions
@@ -61,4 +65,9 @@ See [ssci](http://www.surveyscience.co.uk/html/ssci/ssci_js.html) for more detai
 - Create layers for stack layout
 - Produce cubic interpolation string
 - Calculate determinant
+- Gamma function
  
+## To do
+
+- Tests
+- Add gain function and phase shift for the ssci.smooth.filter function
