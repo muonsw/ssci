@@ -71,3 +71,4 @@ See [ssci](http://www.surveyscience.co.uk/html/ssci/ssci_js.html) for more detai
 
 - Tests
 - Add gain function and phase shift for the ssci.smooth.filter function
+- Some of the JSDoc comments need updating to reflect the changes in 1.2
