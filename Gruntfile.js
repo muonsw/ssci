@@ -4,7 +4,7 @@ module.exports = function(grunt) {
                     ' *  <%= pkg.description %> \n' +
                     ' *  <%= grunt.template.today("yyyy-mm-dd") %> \n' +
                     ' *  License: <%= pkg.license %> \n' +
-					' *  Copyright (C) 2016 Simon West */' +
+					' *  Copyright (C) 2016 Simon West\n */' +
 					"\n\nvar ssci = (function(){ \n  'use strict';\n\n";
   var name = '<%= pkg.name %>-v<%= pkg.version%>';
   var footerContent = '\nreturn ssci;\n\n}( this ));';
@@ -59,12 +59,13 @@ module.exports = function(grunt) {
     uglify: {
       options: {
         banner: bannerContent,
+		footer: footerContent,
         sourceMapRoot: '../',
         sourceMap: 'distrib/'+name+'.min.js.map',
         sourceMapUrl: name+'.min.js.map'
       },
       target : {
-        src : ['src/**/*.js'],
+        src : ['src/*.js', 'src/*/*.js'],
         dest : 'distrib/' + name + '.min.js'
       }
     },

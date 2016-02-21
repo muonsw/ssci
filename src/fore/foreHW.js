@@ -3,13 +3,16 @@
  * This behaves differently to the other functions. It takes no parameters on initialisation but requires chaining of functions on the main function
  * @return {object} Object containing the forecast points, the residuals, the sum of squares of the residuals etc.
  */
-ssci.fore.HoltWinter = function(){
+ssci.fore.holtWinter = function(){
+    var data = [];
     var dataArray = [];
     var factor = 0.3;
     var trend = 0.3;
     var season = 0.3;
     var period = 12;
     var sumsq=0;
+    var x_conv = function(d){ return d[0]; };
+    var y_conv = function(d){ return d[1]; };
     
     var numPoints = 0;
     var output = [];
@@ -20,6 +23,12 @@ ssci.fore.HoltWinter = function(){
     
     function retVar(){
         var i;
+        
+        //Create array of data using accessors
+        dataArray = data.map( function(d){
+            return [x_conv(d), y_conv(d)];
+        });
+        numPoints = dataArray.length;
         
         //Generate starting value for l - average of first season
         if(l.length===0){
@@ -145,14 +154,26 @@ ssci.fore.HoltWinter = function(){
     };
     
     retVar.data = function(value){
-        dataArray = value;
-        numPoints = dataArray.length;
+        data = value;
+        numPoints = data.length;
         
         //Is there enough data - i.e. at least one season's worth
         if(period>=(numPoints/2)){
             throw new Error('Not enough data to estimate forecasts - need 2*period of data');
         }
         
+        return retVar;
+    };
+    
+    retVar.x = function(value){
+        if(!arguments.length){ return x_conv; }
+        x_conv = value;
+        return retVar;
+    };
+    
+    retVar.y = function(value){
+        if(!arguments.length){ return y_conv; }
+        y_conv = value;
         return retVar;
     };
     

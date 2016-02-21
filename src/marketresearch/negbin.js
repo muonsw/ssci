@@ -25,7 +25,7 @@ ssci.mr.negbin = function(r, m, b){
     r = Math.round(r);
     
     //Calculate a
-    var a = this.nbd_a(b,m);
+    var a = ssci.mr.nbd_a(b,m);
     
     //Calculate k
     var k = m/a;
@@ -33,7 +33,7 @@ ssci.mr.negbin = function(r, m, b){
     //NBD only exists if m>=-ln(p0)
     if(m>=-Math.log(1-b)){
         //Calculate p and return
-        return (this.gamma(k+r)/(this.gamma(r+1)*this.gamma(k)))*(Math.pow(a+1,-k))*(Math.pow(a/(a+1),r));
+        return (ssci.gamma(k+r)/(ssci.gamma(r+1)*ssci.gamma(k)))*(Math.pow(a+1,-k))*(Math.pow(a/(a+1),r));
     } else {
         return NaN;
     }

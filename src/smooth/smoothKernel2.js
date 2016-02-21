@@ -1,5 +1,3 @@
-
-
 /** 
  * Take an array of points and returns a set of smoothed points by applying a filter (specified by the kernel function) to the data
  * This function cuts off the kernel calculations after the kernel decreases beyond a certain level
@@ -25,11 +23,20 @@ ssci.smooth.kernel2 = function(){
     };
     var max_diff = 0.001;   //Maximum difference to calculate kernel - equivalent to 0.1%
     var scale = [];
-    var dataArray = [];
+    var data = [];
     var kernel = "Gaussian";
     var i, j;               //Iterators
+    var x_conv = function(d){ return d[0]; };
+    var y_conv = function(d){ return d[1]; };
     
     function sk() {
+        var dataArray = [];
+        
+        //Create array of data using accessors
+        dataArray = data.map( function(d){
+            return [x_conv(d), y_conv(d)];
+        });
+        
         //Deal with scale
         var scales = [];
         
@@ -114,11 +121,15 @@ ssci.smooth.kernel2 = function(){
         return sk;
     };
     
-    sk.x = function(){
+    sk.x = function(value){
+        if(!arguments.length){ return x_conv; }
+        x_conv = value;
         return sk;
     };
     
-    sk.y = function(){
+    sk.y = function(value){
+        if(!arguments.length){ return y_conv; }
+        y_conv = value;
         return sk;
     };
     
@@ -134,7 +145,7 @@ ssci.smooth.kernel2 = function(){
     };
     
     sk.data = function(value){
-		dataArray = value;
+		data = value;
 		
 		return sk;
 	};

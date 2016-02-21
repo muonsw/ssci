@@ -42,7 +42,7 @@ ssci.reg.determinant = function(p){
             }
         }
         if (j > 0){
-            temp += (Math.pow((-1),(i + j)) * p[i][j] * ssci.determinant(tempp));
+            temp += (Math.pow((-1),(i + j)) * p[i][j] * ssci.reg.determinant(tempp));
         } else {
             temp += (Math.pow((-1),(i + j)) * p[i][j] * tempp[0][0]);
         }

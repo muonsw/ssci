@@ -45,7 +45,7 @@ ssci.reg.determinantBig = function(p){
         }
         if (j > 0){
             //temp += (Math.pow((-1),(i + j)) * p[i][j] * this.bDeterminant(tempp));
-            temp = temp.plus(p[i][j].times(Math.pow((-1),(i + j))).times(this.determinantBig(tempp)));
+            temp = temp.plus(p[i][j].times(Math.pow((-1),(i + j))).times(ssci.reg.determinantBig(tempp)));
         } else {
             //temp += (Math.pow((-1),(i + j)) * p[i][j] * tempp[0][0]);
             temp = temp.plus(p[i][j].times(Math.pow((-1),(i + j))).times(tempp[0][0]));

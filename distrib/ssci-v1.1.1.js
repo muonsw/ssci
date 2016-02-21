@@ -1,8 +1,9 @@
 /*! ssci v1.1.1 
  *  JavaScript smoothing, seasonal and regression functions 
- *  2016-02-02 
+ *  2016-02-06 
  *  License: GPL-3.0 
- *  Copyright (C) 2016 Simon West */
+ *  Copyright (C) 2016 Simon West
+ */
 
 var ssci = (function(){ 
   'use strict';
@@ -24,50 +25,92 @@ ssci.mr     = {};
  * @param {number} factor - factor to smooth by
  * @return {object} Object containing the forecast points, the residuals, the sum of squares of the residuals and the factor
  */
-ssci.fore.ES = function(dataArray, factor){
-    if(arguments.length!==2){
-        throw new Error('Incorrect number of arguments passed');
-    }
-    
-    var numPoints = dataArray.length;
+ssci.fore.expon = function(){
+    var data = [];
+    var numPoints = 0;
     var output = [];
     var resids = [];
-    var retVar = {};
-    var i;
+    var sumsq=0;
+    var factor = 0.3;
+    var x_conv = function(d){ return d[0]; };
+    var y_conv = function(d){ return d[1]; };
     
-    //Check that factor is in range and of the right type
-    if(typeof factor !== 'number'){
-        console.log('Factor appears to not be a number - changed to 0.3');
-        factor=0.3;
-    }
-    if(factor>1 || factor<0){
-        console.log('Factor >1 or <0 - changed to 0.3');
-        factor=0.3;
-    }
-    
-    for(i=1;i<(numPoints+1);i++){
-        if(i<2){
-            output.push([dataArray[i][0], dataArray[i-1][1]]);
-        } else if(i===numPoints){
-            //Should I check for a date in the x-axis?
-            output.push([+dataArray[i-1][0]+(+dataArray[i-1][0]-dataArray[i-2][0]), dataArray[i-1][1]*factor + output[i-2][1]*(1-factor)]);
-        } else {
-            output.push([dataArray[i][0], dataArray[i-1][1]*factor + output[i-2][1]*(1-factor)]);
+    function retVar(){
+        var i;
+        var dataArray = [];
+        
+        //Create array of data using accessors
+        dataArray = data.map( function(d){
+            return [x_conv(d), y_conv(d)];
+        });
+        numPoints = dataArray.length;
+        
+        //Calculate forecasts
+        for(i=1;i<(numPoints+1);i++){
+            if(i<2){
+                output.push([dataArray[i][0], dataArray[i-1][1]]);
+            } else if(i===numPoints){
+                //Should I check for a date in the x-axis?
+                //x value is one period on from the last period
+                output.push([+dataArray[i-1][0]+(+dataArray[i-1][0]-dataArray[i-2][0]), dataArray[i-1][1]*factor + output[i-2][1]*(1-factor)]);
+            } else {
+                output.push([dataArray[i][0], dataArray[i-1][1]*factor + output[i-2][1]*(1-factor)]);
+            }
+        }
+        
+        //Calculate residuals
+        for(i=1;i<numPoints;i++){
+            resids.push(dataArray[i][1]-output[i-1][1]);
+            sumsq += Math.pow(dataArray[i][1]-output[i-1][1],2);
         }
     }
     
-    //Calculate residuals
-    var sumsq=0;
-    for(i=1;i<numPoints;i++){
-        resids.push(dataArray[i][1]-output[i-1][1]);
-        console.log(dataArray[i][1],output[i-1][1],dataArray[i][1]-output[i-1][1]);
-        sumsq += Math.pow(dataArray[i][1]-output[i-1][1],2);
-    }
+    retVar.x = function(value){
+        if(!arguments.length){ return x_conv; }
+        x_conv = value;
+        return retVar;
+    };
     
-    retVar.output = output;
-    retVar.residuals = resids;
-    retVar.factor = factor;
-    retVar.sumSquares = sumsq;
+    retVar.y = function(value){
+        if(!arguments.length){ return y_conv; }
+        y_conv = value;
+        return retVar;
+    };
+    
+    retVar.data = function(value){
+        data = value;
+        return retVar;
+    };
+    
+    retVar.factor = function(value){
+        if(!arguments.length){ return factor; }
+        
+        //Check that factor is in range and of the right type
+        if(typeof value !== 'number'){
+            console.log('Factor appears to not be a number - changed to 0.3');
+            factor=0.3;
+            return retVar;
+        }
+        if(value>1 || value<0){
+            console.log('Factor >1 or <0 - changed to 0.3');
+            factor=0.3;
+            return retVar;
+        }
+        
+        factor = value;
+        
+        return retVar;
+    };
+    
+    retVar.output = function(){
+        return output;
+    };
+    retVar.residuals = function(){
+        return resids;
+    };
+    retVar.sumSquares = function(){
+        return sumsq;
+    };
     
     return retVar;
 };
@@ -76,13 +119,16 @@ ssci.fore.ES = function(dataArray, factor){
  * This behaves differently to the other functions. It takes no parameters on initialisation but requires chaining of functions on the main function
  * @return {object} Object containing the forecast points, the residuals, the sum of squares of the residuals etc.
  */
-ssci.fore.HoltWinter = function(){
+ssci.fore.holtWinter = function(){
+    var data = [];
     var dataArray = [];
     var factor = 0.3;
     var trend = 0.3;
     var season = 0.3;
     var period = 12;
     var sumsq=0;
+    var x_conv = function(d){ return d[0]; };
+    var y_conv = function(d){ return d[1]; };
     
     var numPoints = 0;
     var output = [];
@@ -93,6 +139,12 @@ ssci.fore.HoltWinter = function(){
     
     function retVar(){
         var i;
+        
+        //Create array of data using accessors
+        dataArray = data.map( function(d){
+            return [x_conv(d), y_conv(d)];
+        });
+        numPoints = dataArray.length;
         
         //Generate starting value for l - average of first season
         if(l.length===0){
@@ -218,14 +270,26 @@ ssci.fore.HoltWinter = function(){
     };
     
     retVar.data = function(value){
-        dataArray = value;
-        numPoints = dataArray.length;
+        data = value;
+        numPoints = data.length;
         
         //Is there enough data - i.e. at least one season's worth
         if(period>=(numPoints/2)){
             throw new Error('Not enough data to estimate forecasts - need 2*period of data');
         }
         
+        return retVar;
+    };
+    
+    retVar.x = function(value){
+        if(!arguments.length){ return x_conv; }
+        x_conv = value;
+        return retVar;
+    };
+    
+    retVar.y = function(value){
+        if(!arguments.length){ return y_conv; }
+        y_conv = value;
         return retVar;
     };
     
@@ -313,63 +377,152 @@ ssci.fore.HoltWinter = function(){
  * @param {number} trend - factor for the trend smoothing
  * @return {object} Object containing the forecast points, the residuals, the sum of squares of the residuals and the factor
  */
-ssci.fore.Holt = function(dataArray, factor, trend){
-    if(arguments.length!==3){
-        throw new Error('Incorrect number of arguments passed');
-    }
-    
-    var numPoints = dataArray.length;
+ssci.fore.holt = function(){
+    var data = [];
+    var dataArray = [];
+    var numPoints = 0;
     var output = [];
     var resids = [];
-    var retVar = {};
-    
-    //Check that factor is in range and of the right type
-    if(typeof factor !== 'number'){
-        console.log('Factor appears to not be a number - changed to 0.3');
-        factor=0.3;
-    }
-    if(factor>1 || factor<0){
-        console.log('Factor >1 or <0 - changed to 0.3');
-        factor=0.3;
-    }
-    
-    //Check that trend factor is in range and of the right type
-    if(typeof trend !== 'number'){
-        console.log('Trend factor appears to not be a number - changed to 0.3');
-        trend=0.3;
-    }
-    if(trend>1 || trend<0){
-        console.log('Trend >1 or <0 - changed to 0.3');
-        trend=0.3;
-    }
-    
-    output.push(dataArray[0]);
-    
+    var sumsq=0;
+    var factor = 0.3;
+    var trend  = 0.3;
+    var x_conv = function(d){ return d[0]; };
+    var y_conv = function(d){ return d[1]; };
     var l=[];
     var t=[];
-    //Generate starting value for l - first point
-    l.push(dataArray[0][1]);
-    //Generate starting value for t - calculate trend and mulitply by average distance between points
-    t.push(ssci.regPolyBig(dataArray,1).constants[1] * ((dataArray[numPoints-1][0]-dataArray[0][0])/(numPoints-1)));
-
-    for(var i=1;i<(numPoints);i++){
-        l.push(factor*dataArray[i][1]+(1-factor)*(l[i-1]+t[i-1]));
-        t.push(trend*(l[i]-l[i-1])+(1-trend)*t[i-1]);
-        //Create forecasts - current forecast is based on last periods estimates of l(evel) and t(rend)
-        output.push([dataArray[i][0], l[i-1]+t[i-1]]);
+    
+    function retVar(){
+        var i;
+        
+        //Create array of data using accessors
+        dataArray = data.map( function(d){
+            return [x_conv(d), y_conv(d)];
+        });
+        numPoints = dataArray.length;
+        
+        //Push first value to dataArray
+        output.push(dataArray[0]);
+        
+        //Generate starting value for l - first value of dataArray
+        if(l.length===0){
+            l.push(dataArray[0][1]);
+        }
+        
+        //Generate starting value for t - initial average difference between first three pairs of points
+        if(t.length===0){
+            t.push((1/3)*(dataArray[1][1]-dataArray[0][1])+(dataArray[2][1]-dataArray[1][1])+(dataArray[3][1]-dataArray[2][1]));
+            
+            //Alternative 1 - calculate trend for entire series and multiply by average distance between points
+            //t.push(ssci.reg.polyBig(dataArray,1).constants[1] * ((dataArray[numPoints-1][0]-dataArray[0][0])/(numPoints-1)));
+        
+            //Alternative 2 - trend for first to second point
+            //t.push(dataArray[1][1]-dataArray[0][1]);
+            
+            //Alternative 3 - trend between first and last point
+            //t.push((dataArray[numPoints-1][1]-dataArray[0][1])/(numPoints-1));
+        }
+        
+        //Calculate new values for level, trend and forecast
+        for(i=1;i<(numPoints);i++){
+            l.push(factor*dataArray[i][1]+(1-factor)*(l[i-1]+t[i-1]));
+            t.push(trend*(l[i]-l[i-1])+(1-trend)*t[i-1]);
+            //Create forecasts - current forecast is based on last periods estimates of l(evel) and t(rend)
+            output.push([dataArray[i][0], l[i-1]+t[i-1]]);
+        }
+        
+        //Calculate residuals
+        var sumsq=0;
+        for(i=1;i<numPoints;i++){
+            resids.push(dataArray[i][1]-output[i][1]);
+            sumsq += Math.pow(dataArray[i][1]-output[i][1],2);
+        }
     }
     
-    //Calculate residuals
-    var sumsq=0;
-    for(i=1;i<numPoints;i++){
-        resids.push(dataArray[i][1]-output[i][1]);
-        sumsq += Math.pow(dataArray[i][1]-output[i][1],2);
-    }
+    retVar.initialLevel = function(value){
+        if(!arguments.length){ return l[0]; }
+        l = [];
+        
+        l.push(value);
+        
+        return retVar;
+    };
     
-    retVar.output = output;
-    retVar.residuals = resids;
-    retVar.factor = [factor, trend];
-    retVar.sumSquares = sumsq;
+    retVar.initialTrend = function(value){
+        if(!arguments.length){ return t[0]; }
+        t = [];
+        
+        t.push(value);
+        
+        return retVar;
+    };
+    
+    retVar.x = function(value){
+        if(!arguments.length){ return x_conv; }
+        x_conv = value;
+        return retVar;
+    };
+    
+    retVar.y = function(value){
+        if(!arguments.length){ return y_conv; }
+        y_conv = value;
+        return retVar;
+    };
+    
+    retVar.data = function(value){
+        data = value;
+        return retVar;
+    };
+    
+    retVar.factor = function(value){
+        if(!arguments.length){ return factor; }
+        
+        //Check that factor is in range and of the right type
+        if(typeof value !== 'number'){
+            console.log('Factor appears to not be a number - changed to 0.3');
+            factor=0.3;
+            return retVar;
+        }
+        if(value>1 || value<0){
+            console.log('Factor >1 or <0 - changed to 0.3');
+            factor=0.3;
+            return retVar;
+        }
+        
+        factor = value;
+        
+        return retVar;
+    };
+    
+    retVar.output = function(){
+        return output;
+    };
+    retVar.residuals = function(){
+        return resids;
+    };
+    retVar.sumSquares = function(){
+        return sumsq;
+    };
+    
+    retVar.trend = function(value){
+        if(!arguments.length){ return trend; }
+        
+        //Check that trend factor is in range and of the right type
+        if(typeof value !== 'number'){
+            console.log('Trend factor appears to not be a number - changed to 0.3');
+            trend=0.3;
+            return retVar;
+        }
+        if(value>1 || value<0){
+            console.log('Trend >1 or <0 - changed to 0.3');
+            trend=0.3;
+            return retVar;
+        }
+    
+        trend = value;
+    
+        return retVar;
+    };
+    
     retVar.forecast = function(d){
         //Check that d is a number
         if(typeof d !== 'number'){
@@ -564,7 +717,7 @@ ssci.reg.determinant = function(p){
             }
         }
         if (j > 0){
-            temp += (Math.pow((-1),(i + j)) * p[i][j] * ssci.determinant(tempp));
+            temp += (Math.pow((-1),(i + j)) * p[i][j] * ssci.reg.determinant(tempp));
         } else {
             temp += (Math.pow((-1),(i + j)) * p[i][j] * tempp[0][0]);
         }
@@ -621,7 +774,7 @@ ssci.reg.determinantBig = function(p){
         }
         if (j > 0){
             //temp += (Math.pow((-1),(i + j)) * p[i][j] * this.bDeterminant(tempp));
-            temp = temp.plus(p[i][j].times(Math.pow((-1),(i + j))).times(this.determinantBig(tempp)));
+            temp = temp.plus(p[i][j].times(Math.pow((-1),(i + j))).times(ssci.reg.determinantBig(tempp)));
         } else {
             //temp += (Math.pow((-1),(i + j)) * p[i][j] * tempp[0][0]);
             temp = temp.plus(p[i][j].times(Math.pow((-1),(i + j))).times(tempp[0][0]));
@@ -632,21 +785,14 @@ ssci.reg.determinantBig = function(p){
     return temp;
 
 };
+
 /**
  * Fit a polynomial to the set of points passed to the function i.e. least squares regression
  * @param {array} dataArray - an array of points
  * @param {number} order - the order of the polynomial i.e. 2 for quadratic, 1 for linear etc.
  * @returns {array} an array of points, 'x' coordinate in the first element of the point
  */
-ssci.reg.poly = function(dataArray, order){
-    if(arguments.length!==2){
-        throw new Error('Incorrect number of arguments passed');
-    }
-    //Change order if it is greater than the number of points
-    if(order>(dataArray.length-1)){
-        order=dataArray.length-1;
-        console.log('Order changed to ' + (dataArray.length-1));
-    }
+ssci.reg.poly = function(){
     
     var output=[];    //Set of points calculated at same x coordinates as dataArray
     var ms=[];
@@ -655,83 +801,124 @@ ssci.reg.poly = function(dataArray, order){
     var con=[];        //Constants of polynomial
     var detms;
     var i,j,k;
+    var x_conv = function(d){ return d[0]; };
+    var y_conv = function(d){ return d[1]; };
+    var data = [];
+    var order = 2;
     
-    //Check that order is a number
-    if(typeof order!== 'number'){
-        order = 2;
-    }
-    if(order <= 0){
-        order = 2;
-    }
-    
-    //Initialise variables
-    for(i=0;i<(order+1);i++){
-        var temp2=[];
-        var temp3=[];
-        for(k=0;k<(order+1);k++){
-            temp2.push(0);
-            temp3.push(0);
+    function rp(){
+        var dataArray = [];
+        
+        //Create array of data using accessors
+        dataArray = data.map( function(d){
+            return [x_conv(d), y_conv(d)];
+        });
+        
+        //Change order if it is greater than the number of points
+        if(order>(dataArray.length-1)){
+            order=dataArray.length-1;
+            console.log('Order changed to ' + (dataArray.length-1));
         }
-        ms.push(temp2);
-        msdash.push(temp3);
-        ns.push(0);
-    }
-    
-    //Set up matrices
-    for(i = 0;i<(order+1);i++){
-        for(j = 0;j<(order+1);j++){
-            for(k = 0;k<dataArray.length;k++){
-                ms[i][j] += Math.pow(dataArray[k][0], (i+j));
+        
+        //Initialise variables
+        for(i=0;i<(order+1);i++){
+            var temp2=[];
+            var temp3=[];
+            for(k=0;k<(order+1);k++){
+                temp2.push(0);
+                temp3.push(0);
             }
+            ms.push(temp2);
+            msdash.push(temp3);
+            ns.push(0);
         }
-    }
-    
-    for(j = 0;j<(order+1);j++){
-        for(k = 0;k<dataArray.length;k++){
-            ns[j] += Math.pow(dataArray[k][0], j) * dataArray[k][1];
-        }
-    }
-    
-    detms = ssci.determinant(ms);
-    
-    for(i = 0;i<(order+1);i++){
-        //'Set up M'
-        for(j = 0;j<(order+1);j++){
-            for(k = 0;k<(order+1);k++){
-                if(k === i){
-                    msdash[j][k] = ns[j];
-                } else {
-                    msdash[j][k] = ms[j][k];
+        
+        //Set up matrices
+        for(i = 0;i<(order+1);i++){
+            for(j = 0;j<(order+1);j++){
+                for(k = 0;k<dataArray.length;k++){
+                    ms[i][j] += Math.pow(dataArray[k][0], (i+j));
                 }
             }
         }
-        con.push(ssci.determinant(msdash) / detms);
-    }
-    
-    for(k = 0;k<dataArray.length;k++){
-        var temp=0;
+        
         for(j = 0;j<(order+1);j++){
-            temp+=Math.pow(dataArray[k][0], j)*con[j];
+            for(k = 0;k<dataArray.length;k++){
+                ns[j] += Math.pow(dataArray[k][0], j) * dataArray[k][1];
+            }
         }
-        output.push([dataArray[k][0], temp]);
+        
+        detms = ssci.reg.determinant(ms);
+        
+        for(i = 0;i<(order+1);i++){
+            //'Set up M'
+            for(j = 0;j<(order+1);j++){
+                for(k = 0;k<(order+1);k++){
+                    if(k === i){
+                        msdash[j][k] = ns[j];
+                    } else {
+                        msdash[j][k] = ms[j][k];
+                    }
+                }
+            }
+            con.push(ssci.reg.determinant(msdash) / detms);
+        }
+        
+        for(k = 0;k<dataArray.length;k++){
+            var temp=0;
+            for(j = 0;j<(order+1);j++){
+                temp+=Math.pow(dataArray[k][0], j)*con[j];
+            }
+            output.push([dataArray[k][0], temp]);
+        }
     }
     
-    return output;
+    rp.order = function(value){
+        if(!arguments.length){ return order; }
+        
+        //Check that order is a number
+        if(typeof value!== 'number'){
+            order = 2;
+        }
+        if(value <= 0){
+            order = 2;
+        }
+        order = value;
+        
+        return rp;
+    };
+    
+    rp.output = function(){
+        return output;
+    };
+    
+    rp.x = function(value){
+        if(!arguments.length){ return x_conv; }
+        x_conv = value;
+        return rp;
+    };
+    
+    rp.y = function(value){
+        if(!arguments.length){ return y_conv; }
+        y_conv = value;
+        return rp;
+    };
+    
+    rp.data = function(value){
+        data = value;
+        return rp;
+    };
+    
+    return rp;
 };
+
 /**
  * Fit a polynomial to the set of points passed to the function i.e. least squares regression but return object and use Big objects
  * @param {array} dataArray - an array of points
  * @param {number} order - the order of the polynomial i.e. 2 for quadratic, 1 for linear etc.
  * @returns {object} object containing an array of points ('x' coordinate in the first element of the point), array of constants for the polynomial and array of residuals
  */
-ssci.reg.polyBig = function(dataArray, order){
-    if(arguments.length!==2){
-        throw new Error('Incorrect number of arguments passed');
-    }
-    if(order>(dataArray.length-1)){
-        order=dataArray.length-1;
-        console.log('Order changed to ' + (dataArray.length-1));
-    }
+ssci.reg.polyBig = function(){
     
     var output=[];    //Set of points calculated at same x coordinates as dataArray
     var resids=[];
@@ -741,90 +928,142 @@ ssci.reg.polyBig = function(dataArray, order){
     var con=[];        //Constants of polynomial
     var con2=[];
     var detms;
-    var retVar={};
     var newDA=[];    //Array of Bigs to hold data from dataArray
     var i,j,k;
+    var x_conv = function(d){ return d[0]; };
+    var y_conv = function(d){ return d[1]; };
+    var data = [];
+    var order = 2;
     
-    //Check that order is a number
-    if(typeof order!== 'number'){
-        order = 2;
-    }
-    if(order <= 0){
-        order = 2;
-    }
-    
-    //Initialise newDA
-    for(i=0; i<dataArray.length; i++){
-        var temp=[];
-        temp.push(new Big(+dataArray[i][0]));
-        temp.push(new Big(+dataArray[i][1]));
-        newDA.push(temp);
-    }
-    
-    //Initialise variables
-    for(i=0;i<(order+1);i++){
-        var temp2=[];
-        var temp3=[];
-        for(k=0;k<(order+1);k++){
-            temp2.push(new Big(0));
-            temp3.push(new Big(0));
+    function rp(){
+        var dataArray = [];
+        
+        //Create array of data using accessors
+        dataArray = data.map( function(d){
+            return [x_conv(d), y_conv(d)];
+        });
+        
+        //Change order if it is greater than the number of points
+        if(order>(dataArray.length-1)){
+            order=dataArray.length-1;
+            console.log('Order changed to ' + (dataArray.length-1));
         }
-        ms.push(temp2);
-        msdash.push(temp3);
-        ns.push(new Big(0));
-    }
-    
-    //Set up matrices
-    for(i = 0;i<(order+1);i++){
-        for(j = 0;j<(order+1);j++){
-            for(k = 0;k<dataArray.length;k++){
-                //ms[i][j] = ms[i][j] + Math.pow(dataArray[k][0], (i+j));
-                ms[i][j] = ms[i][j].plus(newDA[k][0].pow(i+j));
+        
+        //Initialise newDA
+        for(i=0; i<dataArray.length; i++){
+            var temp=[];
+            temp.push(new Big(+dataArray[i][0]));
+            temp.push(new Big(+dataArray[i][1]));
+            newDA.push(temp);
+        }
+        
+        //Initialise variables
+        for(i=0;i<(order+1);i++){
+            var temp2=[];
+            var temp3=[];
+            for(k=0;k<(order+1);k++){
+                temp2.push(new Big(0));
+                temp3.push(new Big(0));
             }
+            ms.push(temp2);
+            msdash.push(temp3);
+            ns.push(new Big(0));
         }
-    }
-    
-    for(j = 0;j<(order+1);j++){
-        for(k = 0;k<dataArray.length;k++){
-            //ns[j] += Math.pow(dataArray[k][0], j) * dataArray[k][1];
-            ns[j] = ns[j].plus(newDA[k][0].pow(j).times(newDA[k][1]));
-        }
-    }
-    
-    detms = this.determinantBig(ms);
-    if(detms.valueOf() === '0'){
-        throw new Error('Determinant is zero. Fitted line is not calculable.');
-    }
-    
-    for(i = 0;i<(order+1);i++){
-        //'Set up M'
-        for(j = 0;j<(order+1);j++){
-            for(k = 0;k<(order+1);k++){
-                if(k === i){
-                    msdash[j][k] = ns[j];
-                } else {
-                    msdash[j][k] = ms[j][k];
+        
+        //Set up matrices
+        for(i = 0;i<(order+1);i++){
+            for(j = 0;j<(order+1);j++){
+                for(k = 0;k<dataArray.length;k++){
+                    //ms[i][j] = ms[i][j] + Math.pow(dataArray[k][0], (i+j));
+                    ms[i][j] = ms[i][j].plus(newDA[k][0].pow(i+j));
                 }
             }
         }
-        con.push(this.determinantBig(msdash).div(detms));    //Using Big.div - had to change DP in Big object
-        con2.push(parseFloat(con[i].valueOf()));
-    }
-    
-    for(k = 0;k<dataArray.length;k++){
-        var tempb=new Big(0);
+        
         for(j = 0;j<(order+1);j++){
-            //temp+=Math.pow(dataArray[k][0], j)*con[j];
-            tempb = tempb.plus(newDA[k][0].pow(j).times(con[j]));
+            for(k = 0;k<dataArray.length;k++){
+                //ns[j] += Math.pow(dataArray[k][0], j) * dataArray[k][1];
+                ns[j] = ns[j].plus(newDA[k][0].pow(j).times(newDA[k][1]));
+            }
         }
-        output.push([dataArray[k][0], tempb.valueOf()]);
-        resids.push(dataArray[k][1]-parseFloat(tempb.toString()));
+        
+        detms = ssci.reg.determinantBig(ms);
+        if(detms.valueOf() === '0'){
+            throw new Error('Determinant is zero. Fitted line is not calculable.');
+        }
+        
+        for(i = 0;i<(order+1);i++){
+            //'Set up M'
+            for(j = 0;j<(order+1);j++){
+                for(k = 0;k<(order+1);k++){
+                    if(k === i){
+                        msdash[j][k] = ns[j];
+                    } else {
+                        msdash[j][k] = ms[j][k];
+                    }
+                }
+            }
+            con.push(ssci.reg.determinantBig(msdash).div(detms));    //Using Big.div - had to change DP in Big object
+            con2.push(parseFloat(con[i].valueOf()));
+        }
+        
+        for(k = 0;k<dataArray.length;k++){
+            var tempb=new Big(0);
+            for(j = 0;j<(order+1);j++){
+                //temp+=Math.pow(dataArray[k][0], j)*con[j];
+                tempb = tempb.plus(newDA[k][0].pow(j).times(con[j]));
+            }
+            output.push([dataArray[k][0], tempb.valueOf()]);
+            resids.push(dataArray[k][1]-parseFloat(tempb.toString()));
+        }
     }
     
-    retVar.output = output;
-    retVar.residuals = resids;
-    retVar.constants = con2;
-    retVar.forecast = function(d){
+    rp.order = function(value){
+        if(!arguments.length){ return order; }
+        
+        //Check that order is a number
+        if(typeof value!== 'number'){
+            order = 2;
+        }
+        if(value <= 0){
+            order = 2;
+        }
+        order = value;
+        
+        return rp;
+    };
+    
+    rp.output = function(){
+        return output;
+    };
+    
+    rp.x = function(value){
+        if(!arguments.length){ return x_conv; }
+        x_conv = value;
+        return rp;
+    };
+    
+    rp.y = function(value){
+        if(!arguments.length){ return y_conv; }
+        y_conv = value;
+        return rp;
+    };
+    
+    rp.data = function(value){
+        data = value;
+        return rp;
+    };
+    
+    rp.residuals = function(){
+        return resids;
+    };
+    
+    rp.constants = function(){
+        return con2;
+    };
+    
+    //Predict a new figure given an x value
+    rp.forecast = function(d){
         //Check that d is a number
         if(typeof d !== 'number'){
             throw new Error('Input is not a number');
@@ -839,7 +1078,7 @@ ssci.reg.polyBig = function(dataArray, order){
     };
     //Also add r squared value?
     
-    return retVar;
+    return rp;
 };
 /**
  * Deseasonalise data based on the average for the period (specified by label range).
@@ -847,106 +1086,188 @@ ssci.reg.polyBig = function(dataArray, order){
  * @param {array} labels - an array holding the labels that specify the period e.g. Jan, Feb, Mar etc.
  * @returns {array} - an array with the new points 
  */
-ssci.season.Average = function(dataArray, labels){
-    if(arguments.length!==2){
-        throw new Error('Incorrect number of arguments passed');
-    }
-    
-    var numPoints = dataArray.length;
+ssci.season.Average = function(){
+
+    var numPoints = 0;
     var output = [];
     var i;
-                
-    //Check labels - is it an array and is it the right size
-    if (typeof labels === 'object' && Array.isArray(labels)){
-        //Does the length of the scale array match the number of points fed to the function
-        if(labels.length !== dataArray.length){
+    var x_conv = function(d){ return d[0]; };
+    var y_conv = function(d){ return d[1]; };
+    var data = [];
+    var labels = [];
+    
+    function sa(){
+        var dataArray = [];
+        
+        //Create array of data using accessors
+        dataArray = data.map( function(d){
+            return [x_conv(d), y_conv(d)];
+        });
+        numPoints = dataArray.length;
+        
+        //Check labels - is it an array and is it the right size
+        if (typeof labels === 'object' && Array.isArray(labels)){
+            //Does the length of the scale array match the number of points fed to the function
+            if(labels.length !== dataArray.length){
+                console.log(labels);
+                throw new Error('Labels array is not the same length as the data array');
+            }
+        } else {
+            //What else can it be?
             console.log(labels);
             throw new Error('Invalid label parameter');
         }
-    } else {
-        //What else can it be?
-        console.log(labels);
-        throw new Error('Invalid label parameter');
-    }
-    
-    //Deseasonalise data
-    //Calculate averages
-    var labelSum = {};
-    var labelCnt = {};
-    var labelAvg = {};
-    var totalSum=0;
-    var totalCount=0;
-    for(i=0;i<labels.length;i++){
-        if(labels[i] in labelSum){
-            labelSum[labels[i]] = labelSum[labels[i]] + dataArray[i][1];
-        } else {
-            labelSum[labels[i]] = dataArray[i][1];
+        
+        //Deseasonalise data
+        //Calculate averages
+        var labelSum = {};
+        var labelCnt = {};
+        var labelAvg = {};
+        var totalSum=0;
+        var totalCount=0;
+        for(i=0;i<labels.length;i++){
+            if(labels[i] in labelSum){
+                labelSum[labels[i]] = labelSum[labels[i]] + dataArray[i][1];
+            } else {
+                labelSum[labels[i]] = dataArray[i][1];
+            }
+            
+            if(labels[i] in labelCnt){
+                labelCnt[labels[i]] = labelCnt[labels[i]] + 1;
+            } else {
+                labelCnt[labels[i]] = 1;
+            }
+            
+            if(!(labels[i] in labelAvg)){
+                labelAvg[labels[i]] = 0;
+            }
+            totalSum += dataArray[i][1];
+            totalCount++;
+        }
+        var tempKeys = Object.keys(labelAvg);
+        for(var wk=0;wk<tempKeys.length;wk++){
+            labelAvg[tempKeys[wk]] = (labelSum[tempKeys[wk]]*totalCount)/(labelCnt[tempKeys[wk]]*totalSum);
         }
         
-        if(labels[i] in labelCnt){
-            labelCnt[labels[i]] = labelCnt[labels[i]] + 1;
-        } else {
-            labelCnt[labels[i]] = 1;
+        for(i=0;i<numPoints;i++){
+            output.push([dataArray[i][0], dataArray[i][1]/labelAvg[labels[i]]]);
         }
+    }
+    
+    sa.labels = function(value){
+        labels = value;
         
-        if(!(labels[i] in labelAvg)){
-            labelAvg[labels[i]] = 0;
-        }
-        totalSum += dataArray[i][1];
-        totalCount++;
-    }
-    var tempKeys = Object.keys(labelAvg);
-    for(var wk=0;wk<tempKeys.length;wk++){
-        labelAvg[tempKeys[wk]] = (labelSum[tempKeys[wk]]*totalCount)/(labelCnt[tempKeys[wk]]*totalSum);
-    }
+        return sa;
+    };
     
-    for(i=0;i<numPoints;i++){
-        output.push([dataArray[i][0], dataArray[i][1]/labelAvg[labels[i]]]);
-    }
+    sa.output = function(){
+        return output;
+    };
     
-    return output;
+    sa.x = function(value){
+        if(!arguments.length){ return x_conv; }
+        x_conv = value;
+        return sa;
+    };
+    
+    sa.y = function(value){
+        if(!arguments.length){ return y_conv; }
+        y_conv = value;
+        return sa;
+    };
+    
+    sa.data = function(value){
+        data = value;
+        return sa;
+    };
+    
+    return sa;
 };
+
 /**
  * Deseasonalise the data by differencing the data and adding the moving average
  * @param {array} dataArray - an array of points
  * @param {number} frequency - the number of points to difference over
  * @returns {array} - an array with the new points
  */
-ssci.season.Difference = function(dataArray, frequency){
-    if(arguments.length!==2){
-        throw new Error('Incorrect number of arguments passed');
-    }
+ssci.season.Difference = function(){
     
-    var numPoints = dataArray.length;
+    var numPoints = 0;
     var output = [];
     var ma=[];
     var i;
+    var x_conv = function(d){ return d[0]; };
+    var y_conv = function(d){ return d[1]; };
+    var data = [];
+    var frequency = 12;
     
-    //Check that frequency is in range and of the right type
-    if(typeof frequency !== 'number'){
-        console.log('frequency appears to not be a number - changed to 12');
-        frequency=12;
-    }
-    if(frequency>numPoints){
-        throw new Error('Not enough data for this frequency');
-    }
-    
-    //Calculate moving average
-    for(i=frequency;i<numPoints;i++){
-        ma[i]=0;
-        for(var j=0;j<frequency;j++){
-            ma[i]+=dataArray[i-j][1];
+    function sa(){
+        var dataArray = [];
+        
+        //Create array of data using accessors
+        dataArray = data.map( function(d){
+            return [x_conv(d), y_conv(d)];
+        });
+        numPoints = dataArray.length;
+        
+        //Check that there are enough points in the data series
+        if(frequency>numPoints){
+            throw new Error('Not enough data for this frequency');
         }
-        ma[i]/=frequency;
+        
+        //Calculate moving average
+        for(i=frequency;i<numPoints;i++){
+            ma[i]=0;
+            for(var j=0;j<frequency;j++){
+                ma[i]+=dataArray[i-j][1];
+            }
+            ma[i]/=frequency;
+        }
+        
+        //Difference data
+        for(i=frequency;i<numPoints;i++){
+            output.push([dataArray[i][0], dataArray[i][1]-dataArray[i-frequency][1]+ma[i]]);
+        }
     }
     
-    //Difference data
-    for(i=frequency;i<numPoints;i++){
-        output.push([dataArray[i][0], dataArray[i][1]-dataArray[i-frequency][1]+ma[i]]);
-    }
+    sa.output = function(){
+        return output;
+    };
     
-    return output;
+    sa.x = function(value){
+        if(!arguments.length){ return x_conv; }
+        x_conv = value;
+        return sa;
+    };
+    
+    sa.y = function(value){
+        if(!arguments.length){ return y_conv; }
+        y_conv = value;
+        return sa;
+    };
+    
+    sa.data = function(value){
+        data = value;
+        return sa;
+    };
+    
+    sa.frequency = function(value){
+        if(!arguments.length){ return frequency; }
+        
+        //Check that frequency is in range and of the right type
+        if(typeof value !== 'number'){
+            console.log('frequency appears to not be a number - changed to 12');
+            frequency=12;
+        }
+        
+        frequency = value;
+        
+        return sa;
+    };
+    
+    return sa;
 };
+
 /**
  * Deseasonalise data based on taking the moving average
  * @param {array} dataArray - an array of points
@@ -954,56 +1275,109 @@ ssci.season.Difference = function(dataArray, frequency){
  * @param {boolean} lastN - true if calculating an average over the last n points, false for a central average 
  * @returns {array} - an array with the new points
  */
-ssci.season.MovingAverage = function(dataArray, frequency, lastN){
-    if(arguments.length>3 || arguments.length<2){
-        throw new Error('Incorrect number of arguments passed');
-    }
+ssci.season.MovingAverage = function(){
     
-    var numPoints = dataArray.length;
+    var numPoints = 0;
     var output = [];
     var ma=0;
     var counter=1;
     var weights = [];
     var i;
+    var x_conv = function(d){ return d[0]; };
+    var y_conv = function(d){ return d[1]; };
+    var data = [];
+    var frequency = 12;
+    var lastN = true;
     
-    //Check that frequency is in range and of the right type
-    if(typeof frequency !== 'number'){
-        frequency=12;
-    }
-    if(frequency>numPoints){
-        throw new Error('Not enough data for this frequency');
-    }
-    
-    //Check that lastN is a boolean
-    if(typeof lastN !== 'boolean'){
-        lastN = true;
-    }
-    
-    //Create moving averages
-    //Calculate weights to adjust for even frequency when used with a central average
-    var width = Math.floor(frequency / 2);
-    for(i=0;i<frequency;i++){
-        weights[i] = 1;
-    }
-    
-    for(i = frequency-1;i<numPoints;i++){
-        counter = 0;
-        ma=0;
-        for(var j = i - (frequency-1);j<=i;j++){
-            ma = ma + dataArray[j][1] * weights[counter];
-            counter++;
+    function sa(){
+        var dataArray = [];
+        
+        //Create array of data using accessors
+        dataArray = data.map( function(d){
+            return [x_conv(d), y_conv(d)];
+        });
+        numPoints = dataArray.length;
+        
+        //Check that there are enough points in the data series
+        if(frequency>numPoints){
+            throw new Error('Not enough data for this frequency');
         }
         
-        if(lastN){
-            output.push([dataArray[i][0], ma / frequency]);
-        } else {
-            output.push([dataArray[i-width+1][0], ma / frequency]);
+        //Create moving averages
+        //Calculate weights to adjust for even frequency when used with a central average
+        var width = Math.floor(frequency / 2);
+        for(i=0;i<frequency;i++){
+            weights[i] = 1;
         }
         
+        for(i = frequency-1;i<numPoints;i++){
+            counter = 0;
+            ma=0;
+            for(var j = i - (frequency-1);j<=i;j++){
+                ma = ma + dataArray[j][1] * weights[counter];
+                counter++;
+            }
+            
+            if(lastN){
+                output.push([dataArray[i][0], ma / frequency]);
+            } else {
+                output.push([dataArray[i-width+1][0], ma / frequency]);
+            }
+            
+        }
     }
     
-    return output;
+    sa.end = function(value){
+        if(!arguments.length){ return lastN; }
+        
+        //Check that lastN is a boolean
+        if(typeof value !== 'boolean'){
+            lastN = true;
+        }
+        
+        lastN = value;
+        
+        return sa;
+    };
+    
+    sa.output = function(){
+        return output;
+    };
+    
+    sa.x = function(value){
+        if(!arguments.length){ return x_conv; }
+        x_conv = value;
+        return sa;
+    };
+    
+    sa.y = function(value){
+        if(!arguments.length){ return y_conv; }
+        y_conv = value;
+        return sa;
+    };
+    
+    sa.data = function(value){
+        data = value;
+        return sa;
+    };
+    
+    sa.frequency = function(value){
+        if(!arguments.length){ return frequency; }
+        
+        //Check that frequency is in range and of the right type
+        if(typeof value !== 'number'){
+            console.log('frequency appears to not be a number - changed to 12');
+            frequency=12;
+        }
+        
+        frequency = value;
+        
+        return sa;
+    };
+    
+    return sa;
 };
+
 
 
 /**
@@ -1154,33 +1528,75 @@ function k_S(x1, x2, b){
  * @param {number} factor - factor to smooth by
  * @returns {array} - an array with the new points
  */
-ssci.smooth.EWMA = function(dataArray, factor){
-    if(arguments.length!==2){
-        throw new Error('Incorrect number of arguments passed');
-    }
+ssci.smooth.EWMA = function(){
     
-    var numPoints = dataArray.length;
+    var numPoints = 0;
     var output = [];
+    var x_conv = function(d){ return d[0]; };
+    var y_conv = function(d){ return d[1]; };
+    var data = [];
+    var factor = 0.3;
     
-    //Check that factor is in range and of the right type
-    if(typeof factor !== 'number'){
-        console.log('Factor appears to not be a number - changed to 0.3');
-        factor=0.3;
-    }
-    if(factor>1 || factor<0){
-        console.log('Factor >1 or <0 - changed to 0.3');
-        factor=0.3;
-    }
-    
-    for(var i=0;i<numPoints;i++){
-        if(i===0){
-            output.push(dataArray[i]);
-        } else {
-            output.push([dataArray[i][0], dataArray[i][1]*factor + output[i-1][1]*(1-factor)]);
+    function sm(){
+        var dataArray = [];
+        
+        //Create array of data using accessors
+        dataArray = data.map( function(d){
+            return [x_conv(d), y_conv(d)];
+        });
+        numPoints = dataArray.length;
+        
+        for(var i=0;i<numPoints;i++){
+            if(i===0){
+                output.push(dataArray[i]);
+            } else {
+                output.push([dataArray[i][0], dataArray[i][1]*factor + output[i-1][1]*(1-factor)]);
+            }
         }
     }
     
-    return output;
+    sm.output = function(){
+        return output;
+    };
+    
+    sm.x = function(value){
+        if(!arguments.length){ return x_conv; }
+        x_conv = value;
+        return sm;
+    };
+    
+    sm.y = function(value){
+        if(!arguments.length){ return y_conv; }
+        y_conv = value;
+        return sm;
+    };
+    
+    sm.data = function(value){
+        data = value;
+        return sm;
+    };
+    
+    sm.factor = function(value){
+        if(!arguments.length){ return factor; }
+        
+        //Check that factor is in range and of the right type
+        if(typeof value !== 'number'){
+            console.log('Factor appears to not be a number - changed to 0.3');
+            factor=0.3;
+            return sm;
+        }
+        if(value>1 || value<0){
+            console.log('Factor >1 or <0 - changed to 0.3');
+            factor=0.3;
+            return sm;
+        }
+        
+        factor = value;
+        
+        return sm;
+    };
+    
+    return sm;
 };
 /** 
  * Take an array of points and returns a set of smoothed points by applying a filter to the data around the central point
@@ -1189,76 +1605,133 @@ ssci.smooth.EWMA = function(dataArray, factor){
  * @param {string} removeEnds - if true then removes data that can't be filtered at the start and end of the series. If false applies the filter assymmetrically.
  * @returns {array} - an array with the new points
  */
-ssci.smooth.Filter = function(dataArray, filter, removeEnds){
-    if(arguments.length!==3){
-        throw new Error('Incorrect number of arguments passed');
-    }
+ssci.smooth.Filter = function(){
     
-    var numPoints = dataArray.length;
+    var numPoints = 0;
     var output = [];
     var l_width=0;
     var b=0;
     var i,j;        //Iterators
+    var x_conv = function(d){ return d[0]; };
+    var y_conv = function(d){ return d[1]; };
+    var data = [];
+    var filter = [];
+    var removeEnds = true;
     
-    //Check that the filter is an array and size is odd
-    if(!(typeof filter === 'object' && Array.isArray(filter))){
-        throw new Error('Filter must be an array');
-    }
-    if(filter.length % 2 === 0){
-        throw new Error('Filter must be of an odd size');
-    }
-    if(filter.length < 3){
-        throw new Error('Filter size must be greater than 2');
-    }
+    function sm(){
+        var dataArray = [];
+        
+        //Create array of data using accessors
+        dataArray = data.map( function(d){
+            return [x_conv(d), y_conv(d)];
+        });
+        numPoints = dataArray.length;
+        
+        l_width = Math.floor(filter.length/2);
     
-    //Check removeEnds
-    if(typeof removeEnds !== 'boolean'){
-        removeEnds = true;
-    }
-    
-    l_width = Math.floor(filter.length/2);
-    
-    //Take care of the start where filtering can't take place
-    if(!removeEnds){
-        for(i=0;i<l_width;i++){
-            b=0;
-            for(j=0;j<2*l_width+1;j++){
-                if((i+j-l_width)>=0){
-                    b+=dataArray[i+j-l_width][1]*filter[j];
-                } else {
-                    b+=dataArray[i][1]*filter[j];
+        //Take care of the start where filtering can't take place
+        if(!removeEnds){
+            for(i=0;i<l_width;i++){
+                b=0;
+                for(j=0;j<2*l_width+1;j++){
+                    if((i+j-l_width)>=0){
+                        b+=dataArray[i+j-l_width][1]*filter[j];
+                    } else {
+                        b+=dataArray[i][1]*filter[j];
+                    }
                 }
+                output.push([dataArray[i][0], b]);
             }
-            output.push([dataArray[i][0], b]);
-        }
-    }
-    
-    //Filter the data
-    for(i=l_width;i<numPoints-l_width;i++){
-        b=0;
-        for(j=0;j<2*l_width+1;j++){
-            b+=dataArray[i+j-l_width][1]*filter[j];
         }
         
-        output.push([dataArray[i][0], b]);
-    }
-    
-    //Take care of the end where filtering can't take place
-    if(!removeEnds){
-        for(i=numPoints-l_width;i<numPoints;i++){
+        //Filter the data
+        for(i=l_width;i<numPoints-l_width;i++){
             b=0;
             for(j=0;j<2*l_width+1;j++){
-                if((i+j-l_width)<numPoints){
-                    b+=dataArray[i+j-l_width][1]*filter[j];
-                } else {
-                    b+=dataArray[i][1]*filter[j];
-                }
+                b+=dataArray[i+j-l_width][1]*filter[j];
             }
+            
             output.push([dataArray[i][0], b]);
+        }
+        
+        //Take care of the end where filtering can't take place
+        if(!removeEnds){
+            for(i=numPoints-l_width;i<numPoints;i++){
+                b=0;
+                for(j=0;j<2*l_width+1;j++){
+                    if((i+j-l_width)<numPoints){
+                        b+=dataArray[i+j-l_width][1]*filter[j];
+                    } else {
+                        b+=dataArray[i][1]*filter[j];
+                    }
+                }
+                output.push([dataArray[i][0], b]);
+            }
         }
     }
     
-    return output;
+    sm.output = function(){
+        return output;
+    };
+    
+    sm.x = function(value){
+        if(!arguments.length){ return x_conv; }
+        x_conv = value;
+        return sm;
+    };
+    
+    sm.y = function(value){
+        if(!arguments.length){ return y_conv; }
+        y_conv = value;
+        return sm;
+    };
+    
+    sm.data = function(value){
+        data = value;
+        return sm;
+    };
+    
+    sm.filter = function(value){
+        if(!arguments.length){ return filter; }
+        
+        //Check that the filter is an array and size is odd
+        if(!(typeof value === 'object' && Array.isArray(value))){
+            throw new Error('Filter must be an array');
+        }
+        if(value.length % 2 === 0){
+            throw new Error('Filter must be of an odd size');
+        }
+        if(value.length < 3){
+            throw new Error('Filter size must be greater than 2');
+        }
+        
+        filter = value;
+        
+        return sm;
+    };
+    
+    sm.end = function(value){
+        if(!arguments.length){ return removeEnds; }
+        
+        //Check removeEnds
+        if(typeof removeEnds !== 'boolean'){
+            removeEnds = true;
+        }
+        
+        removeEnds = value;
+        
+        return sm;
+    };
+    
+    sm.gain = function(){
+        //To do
+    };
+    
+    sm.phaseShift = function(){
+        //To do
+    };
+
+    return sm;
     
 };
 /** 
@@ -1268,10 +1741,8 @@ ssci.smooth.Filter = function(dataArray, filter, removeEnds){
  * @param {number|array} scale - an array or number containing the scaling parameters of the kernel
  * @returns {array} - an array with the new points
  */
-ssci.smooth.kernel = function(kernel, dataArray, scale){
-    if(arguments.length!==3){
-        throw new Error('Incorrect number of arguments passed');
-    }
+ssci.smooth.kernel = function(){
+
     var output=[];
     var kernels = {
         'Uniform': k_U,
@@ -1286,63 +1757,111 @@ ssci.smooth.kernel = function(kernel, dataArray, scale){
         'Silverman': k_S
     };
     var i;      //Iterator
+    var kernel="Gaussian";
+    var data = [];
+    var scale = [];
+    var x_conv = function(d){ return d[0]; };
+    var y_conv = function(d){ return d[1]; };
     
-    //Deal with scale
-    var scales = [];
-    
-    if(typeof scale === 'number'){
-        //Create an array of length dataArray and populate with scale parameter
-        for(i=0;i<dataArray.length;i++){
-            scales.push(scale);
-        }
-    } else if (typeof scale === 'object' && Array.isArray(scale)){
-        //Does the length of the scale array match the number of points fed to the function
-        if(scale.length === dataArray.length){
-            scales = scale.slice();
-        } else {
-            //Put in for completeness but will almost never be what is intended
-            var counter=0;
+    function sk() {
+        var dataArray = [];
+        
+        //Create array of data using accessors
+        dataArray = data.map( function(d){
+            return [x_conv(d), y_conv(d)];
+        });
+        
+        //Deal with scale
+        var scales = [];
+        
+        if(typeof scale === 'number'){
+            //Create an array of length dataArray and populate with scale parameter
             for(i=0;i<dataArray.length;i++){
-                scales.push(scale[counter]);
-                if(i<scale.length){
-                    counter++;
-                } else {
-                    counter=0;
+                scales.push(scale);
+            }
+        } else if (typeof scale === 'object' && Array.isArray(scale)){
+            //Does the length of the scale array match the number of points fed to the function
+            if(scale.length === dataArray.length){
+                scales = scale.slice();
+            } else {
+                //Put in for completeness but will almost never be what is intended
+                var counter=0;
+                for(i=0;i<dataArray.length;i++){
+                    scales.push(scale[counter]);
+                    if(i<scale.length){
+                        counter++;
+                    } else {
+                        counter=0;
+                    }
                 }
             }
-        }
-    } else {
-        //What else can it be?
-        console.log(scale);
-        throw new Error('Invalid scale parameter');
-    }
-    
-    //Check that the kernel is valid
-    if(typeof kernels[kernel] !== 'function'){
-        throw new Error('Invalid kernel');
-    }
-    
-    //Calculate smoothed values
-    for(i=0;i<dataArray.length;i++){
-        var tot_ker1 = 0;
-        var tot_ker2 = 0;
-        
-        for(var j=0;j<dataArray.length;j++){
-            var temp_ker=0;
-            
-            temp_ker = kernels[kernel](dataArray[i][0], dataArray[j][0], scales[i]);
-            
-            tot_ker1 = tot_ker1 + temp_ker * dataArray[j][1];
-            tot_ker2 = tot_ker2 + temp_ker;
+        } else {
+            //What else can it be?
+            console.log(scale);
+            throw new Error('Invalid scale parameter');
         }
         
-        output.push([dataArray[i][0],(tot_ker1 / tot_ker2)]);
+        //Calculate smoothed values
+        for(i=0;i<dataArray.length;i++){
+            var tot_ker1 = 0;
+            var tot_ker2 = 0;
+            
+            for(var j=0;j<dataArray.length;j++){
+                var temp_ker=0;
+                
+                temp_ker = kernels[kernel](dataArray[i][0], dataArray[j][0], scales[i]);
+                
+                tot_ker1 = tot_ker1 + temp_ker * dataArray[j][1];
+                tot_ker2 = tot_ker2 + temp_ker;
+            }
+            
+            output.push([dataArray[i][0],(tot_ker1 / tot_ker2)]);
+        }
     }
     
-    return output;
+    sk.scale = function(value){
+        if(!arguments.length){ return scale; }
+        scale = value;
+        
+        return sk;
+    };
+    
+    sk.kernel = function(value){
+        if(!arguments.length){ return kernel; }
+        //Check that the kernel is valid
+        if(typeof kernels[value] !== 'function'){
+            throw new Error('Invalid kernel');
+        }
+        
+        kernel = value;
+        
+        return sk;
+    };
+    
+    sk.x = function(value){
+        if(!arguments.length){ return x_conv; }
+        x_conv = value;
+        return sk;
+    };
+    
+    sk.y = function(value){
+        if(!arguments.length){ return y_conv; }
+        y_conv = value;
+        return sk;
+    };
+    
+    sk.output = function(){
+        return output;
+    };
+        
+    sk.data = function(value){
+		data = value;
+		
+		return sk;
+	};
+    
+    return sk;
 };
-
-
 
 /** 
  * Take an array of points and returns a set of smoothed points by applying a filter (specified by the kernel function) to the data
@@ -1369,11 +1888,20 @@ ssci.smooth.kernel2 = function(){
     };
     var max_diff = 0.001;   //Maximum difference to calculate kernel - equivalent to 0.1%
     var scale = [];
-    var dataArray = [];
+    var data = [];
     var kernel = "Gaussian";
     var i, j;               //Iterators
+    var x_conv = function(d){ return d[0]; };
+    var y_conv = function(d){ return d[1]; };
     
     function sk() {
+        var dataArray = [];
+        
+        //Create array of data using accessors
+        dataArray = data.map( function(d){
+            return [x_conv(d), y_conv(d)];
+        });
+        
         //Deal with scale
         var scales = [];
         
@@ -1458,11 +1986,15 @@ ssci.smooth.kernel2 = function(){
         return sk;
     };
     
-    sk.x = function(){
+    sk.x = function(value){
+        if(!arguments.length){ return x_conv; }
+        x_conv = value;
         return sk;
     };
     
-    sk.y = function(){
+    sk.y = function(value){
+        if(!arguments.length){ return y_conv; }
+        y_conv = value;
         return sk;
     };
     
@@ -1478,7 +2010,7 @@ ssci.smooth.kernel2 = function(){
     };
     
     sk.data = function(value){
-		dataArray = value;
+		data = value;
 		
 		return sk;
 	};
@@ -1492,13 +2024,11 @@ ssci.smooth.kernel2 = function(){
  * @param {number} width - the width of the quadratic to fit in points
  * @returns {array} - an array with the new points
  */
-ssci.smooth.Quadratic = function(dataArray, width){
-    if(arguments.length!==2){
-        throw new Error('Incorrect number of arguments passed');
-    }
+ssci.smooth.Quadratic = function(){
     
-    var l_width;
-    var numPoints = dataArray.length;
+    var width = 5;
+    var l_width = 2;
+    var numPoints = 0;
 
     var n = 0;
     var x = 0;
@@ -1513,58 +2043,97 @@ ssci.smooth.Quadratic = function(dataArray, width){
     var b2;
     var b3;
     var output = [];
+    var x_conv = function(d){ return d[0]; };
+    var y_conv = function(d){ return d[1]; };
+    var data = [];
     
-    //Check that width is a number and that it is odd
-    if(typeof width!== 'number'){
-        console.log('width appears to not be a number - changed to 5');
-        width = 5;
-    }
-    if(width % 2 === 0){
-        width--;
-    }
-    if(width < 3){
-        width = 5;
-    }
-    
-    l_width = Math.floor(width/2);
-    
-    for(var m=0;m<numPoints;m++){
-        for(var i=m-l_width;i<=m+l_width;i++){
-            var j;
-            j=i;
-            if(j<0){j=0;}
-            if(j>numPoints-1){j=numPoints-1;}
+    function qb() {
+        var dataArray = [];
+        
+        //Create array of data using accessors
+        dataArray = data.map( function(d){
+            return [x_conv(d), y_conv(d)];
+        });
+        numPoints = dataArray.length;
+        
+        for(var m=0;m<numPoints;m++){
+            for(var i=m-l_width;i<=m+l_width;i++){
+                var j;
+                j=i;
+                if(j<0){j=0;}
+                if(j>numPoints-1){j=numPoints-1;}
+                
+                n++;
+                x = x + dataArray[j][0];
+                x2 = x2 + Math.pow(dataArray[j][0],2);
+                x3 = x3 + Math.pow(dataArray[j][0],3);
+                x4 = x4 + Math.pow(dataArray[j][0],4);
+                y = y + dataArray[j][1];
+                xy = xy + dataArray[j][0] * dataArray[j][1];
+                x2y = x2y + Math.pow(dataArray[j][0],2) * dataArray[j][1];
+            }
             
-            n++;
-            x = x + dataArray[j][0];
-            x2 = x2 + Math.pow(dataArray[j][0],2);
-            x3 = x3 + Math.pow(dataArray[j][0],3);
-            x4 = x4 + Math.pow(dataArray[j][0],4);
-            y = y + dataArray[j][1];
-            xy = xy + dataArray[j][0] * dataArray[j][1];
-            x2y = x2y + Math.pow(dataArray[j][0],2) * dataArray[j][1];
+            d = (n * (x2 * x4 - x3 * x3)) - (x * (x * x4 - x3 * x2)) + (x2 * (x * x3 - x2 * x2));
+            
+            b1 = (x2 * x4 - x3 * x3) * y - (x * x4 - x3 * x2) * xy + (x * x3 - x2 * x2) * x2y;
+            b2 = -(x * x4 - x2 * x3) * y + (n * x4 - x2 * x2) * xy - (n * x3 - x * x2) * x2y;
+            b3 = (x * x3 - x2 * x2) * y - (n * x3 - x * x2) * xy + (n * x2 - x * x) * x2y;
+            
+            output.push([dataArray[m][0], (b1/d) + dataArray[m][0] * (b2/d) + dataArray[m][0] * dataArray[m][0] * (b3/d)]);    
+            
+            //Reset x and y values
+            n = 0;
+            x = 0;
+            x2 = 0;
+            x3 = 0;
+            x4 = 0;
+            y = 0;
+            xy = 0;
+            x2y = 0;
+        }
+    }
+    
+    qb.width = function(value){
+        if(typeof value!== 'number'){
+            console.log('width appears to not be a number - changed to 5');
+            return qb;
+        }
+        if(value % 2 === 0){
+            value--;
+        }
+        if(value < 3){
+            value = 5;
         }
         
-        d = (n * (x2 * x4 - x3 * x3)) - (x * (x * x4 - x3 * x2)) + (x2 * (x * x3 - x2 * x2));
+        width = value;
+        l_width = Math.floor(value/2);
         
-        b1 = (x2 * x4 - x3 * x3) * y - (x * x4 - x3 * x2) * xy + (x * x3 - x2 * x2) * x2y;
-        b2 = -(x * x4 - x2 * x3) * y + (n * x4 - x2 * x2) * xy - (n * x3 - x * x2) * x2y;
-        b3 = (x * x3 - x2 * x2) * y - (n * x3 - x * x2) * xy + (n * x2 - x * x) * x2y;
-        
-        output.push([dataArray[m][0], (b1/d) + dataArray[m][0] * (b2/d) + dataArray[m][0] * dataArray[m][0] * (b3/d)]);    
-        
-        //Reset x and y values
-        n = 0;
-        x = 0;
-        x2 = 0;
-        x3 = 0;
-        x4 = 0;
-        y = 0;
-        xy = 0;
-        x2y = 0;
-    }
+        return qb;
+    };
     
-    return output;
+    qb.data = function(value){
+        data = value;
+		
+		return qb;
+    };
+    
+    qb.x = function(value){
+        if(!arguments.length){ return x_conv; }
+        x_conv = value;
+        return qb;
+    };
+    
+    qb.y = function(value){
+        if(!arguments.length){ return y_conv; }
+        y_conv = value;
+        return qb;
+    };
+    
+    qb.output = function(){
+        return output;
+    };
+    
+    return qb;
     
 };
 
@@ -1574,45 +2143,83 @@ ssci.smooth.Quadratic = function(dataArray, width){
  * @param {number} width - the width of the quadratic to fit in points
  * @returns {array} - an array with the new points
  */
-ssci.smooth.QuadraticBig = function(dataArray, width){
-    if(arguments.length!==2){
-        throw new Error('Incorrect number of arguments passed');
-    }
+ssci.smooth.QuadraticBig = function(){
     
-    var l_width;
-    var numPoints = dataArray.length;
+    var width = 5;
+    var l_width = 2;
+    var numPoints = 0;
     var output = [];
+    var x_conv = function(d){ return d[0]; };
+    var y_conv = function(d){ return d[1]; };
+    var data = [];
     
-    if(typeof width!== 'number'){
-        console.log('width appears to not be a number - changed to 5');
-        width = 5;
-    }
-    if(width % 2 === 0){
-        width--;
-    }
-    if(width < 3){
-        width = 5;
-    }
-    
-    l_width = Math.floor(width/2);
-    
-    for(var m=0;m<numPoints;m++){
-        var tempArray=[];
-        for(var i=m-l_width;i<=m+l_width;i++){
-            if(i<0){
-                tempArray.push(dataArray[0]);
-            } else if(i>numPoints-1){
-                tempArray.push(dataArray[numPoints-1]);
-            } else {
-                tempArray.push(dataArray[i]);
+    function qb() {
+        var dataArray = [];
+        
+        //Create array of data using accessors
+        dataArray = data.map( function(d){
+            return [x_conv(d), y_conv(d)];
+        });
+        numPoints = dataArray.length;
+        
+        for(var m=0;m<numPoints;m++){
+            var tempArray=[];
+            for(var i=m-l_width;i<=m+l_width;i++){
+                if(i<0){
+                    tempArray.push(dataArray[0]);
+                } else if(i>numPoints-1){
+                    tempArray.push(dataArray[numPoints-1]);
+                } else {
+                    tempArray.push(dataArray[i]);
+                }
             }
+            
+            var temp = this.reg.polyBig(tempArray,2).constants;
+            output.push([dataArray[m][0], (temp[0]) + dataArray[m][0] * (temp[1]) + dataArray[m][0] * dataArray[m][0] * (temp[2])]);
+        }
+    }
+    
+    qb.width = function(value){
+        if(typeof value!== 'number'){
+            console.log('width appears to not be a number - changed to 5');
+            return qb;
+        }
+        if(value % 2 === 0){
+            value--;
+        }
+        if(value < 3){
+            value = 5;
         }
         
-        var temp = this.regPolyBig(tempArray,2).constants;
-        output.push([dataArray[m][0], (temp[0]) + dataArray[m][0] * (temp[1]) + dataArray[m][0] * dataArray[m][0] * (temp[2])]);
-    }
+        width = value;
+        l_width = Math.floor(value/2);
+        
+        return qb;
+    };
     
-    return output;
+    qb.data = function(value){
+        data = value;
+		
+		return qb;
+    };
+    
+    qb.x = function(value){
+        if(!arguments.length){ return x_conv; }
+        x_conv = value;
+        return qb;
+    };
+    
+    qb.y = function(value){
+        if(!arguments.length){ return y_conv; }
+        y_conv = value;
+        return qb;
+    };
+    
+    qb.output = function(){
+        return output;
+    };
+    
+    return qb;
 };
 /**
  * Calculates the auto-correlation
@@ -1621,100 +2228,152 @@ ssci.smooth.QuadraticBig = function(dataArray, width){
  * @param {number} diffed - how many times the data has been differenced
  * @returns {array} an array of points with [lag, acf]
  */
-ssci.ts.acf = function(dataArray, maxlag, diffed){
-    if(arguments.length!==3){
-        throw new Error('Incorrect number of arguments passed');
-    }
-    if(typeof maxlag !== 'number'){
-        throw new Error('maxlag is not a number');
-    }
-    if(typeof diffed !== 'number'){
-        throw new Error('diffed is not a number');
-    }
-    if(maxlag>(dataArray.length-diffed)){
-        maxlag = dataArray.length-diffed;
-        console.log('Not enough points for the number of lags requested. Max lag changed to ' + maxlag);
-    }
-    
+ssci.ts.acf = function(){
+
     var output=[];
-    var numPoints=dataArray.length;
+    var numPoints=0;
     var lags=[];
     var x=[];
     var i,j,k;
+    var x_conv = function(d){ return d[0]; };
+    var y_conv = function(d){ return d[1]; };
+    var data = [];
+    var maxlag = 20;
+    var diffed = 0;
     
-    //Create lags array
-    for(i=0;i<(maxlag+1);i++){
-        lags.push(i);
-    }
-    
-    //Create data array - i.e. differenced if necessary
-    if(diffed>0){
-        for(i=0;i<(numPoints-1);i++){
-            x.push(dataArray[i][1]-dataArray[i+1][1]);
+    function run(){
+        var dataArray = [];
+        
+        //Create array of data using accessors
+        dataArray = data.map( function(d){
+            return [x_conv(d), y_conv(d)];
+        });
+        numPoints = dataArray.length;
+        
+        if(maxlag>(dataArray.length-diffed)){
+            maxlag = dataArray.length-diffed;
+            console.log('Not enough points for the number of lags requested. Max lag changed to ' + maxlag);
         }
-    } else {
-        for(i=0;i<numPoints;i++){
-            x.push(dataArray[i][1]);
+        
+        //Create lags array
+        for(i=0;i<(maxlag+1);i++){
+            lags.push(i);
         }
-    }
-    
-    if(diffed>1){
-        for(j=0;j<(diffed-1);j++){
-            for(i=0;i<(numPoints-1-j);i++){
-                x[i]=x[i]-x[i+1];
+        
+        //Create data array - i.e. differenced if necessary
+        if(diffed>0){
+            for(i=0;i<(numPoints-1);i++){
+                x.push(dataArray[i][1]-dataArray[i+1][1]);
             }
-            x.pop();
-        }
-    }
-    
-    //Calculate auto-correlation - method doesn't take stationarity into account
-    // for(var i=0;i<maxlag;i++){
-    //     var sx = 0;
-    //     var sy = 0;
-    //     var s1 = 0;
-    //     var s2 = 0;
-    //     var s3 = 0;
-        
-    //     for(var k = 0;k<(numPoints - lags[i] - diffed);k++){
-    //         sx = x[k] + sx;
-    //         sy = x[k + lags[i]] + sy;
-    //     }
-    //     sx = sx / (numPoints - lags[i] - diffed);
-    //     sy = sy / (numPoints - lags[i] - diffed);
-        
-    //     for(var k = 0;k<(numPoints - lags[i] - diffed);k++){
-    //         s1 = s1 + (x[k] - sx) * (x[k + lags[i]] - sy);
-    //         s2 = s2 + Math.pow(x[k] - sx,2);
-    //         s3 = s3 + Math.pow(x[k + lags[i]] - sy,2);
-    //     }
-
-    //     output.push([i, s1 / Math.sqrt(s2 * s3)]);
-    // }
-    
-    //Calculate acf - assuming stationarity i.e. mean and variance constant (sort of)
-    for(i=0;i<=maxlag;i++){
-        var sx = 0;
-        var s1 = 0;
-        var s2 = 0;
-        
-        //Calculate mean
-        for(k = 0;k<(numPoints-diffed);k++){
-            sx = x[k] + sx;
-        }
-        sx = sx / (numPoints-diffed);
-        
-        //Calculate correlation
-        for(k = 0;k<(numPoints - diffed);k++){
-            if(k<(numPoints - lags[i] - diffed)){
-                s1 = s1 + (x[k] - sx) * (x[k + lags[i]] - sx);
+        } else {
+            for(i=0;i<numPoints;i++){
+                x.push(dataArray[i][1]);
             }
-            s2 = s2 + Math.pow(x[k] - sx,2);
         }
+        
+        if(diffed>1){
+            for(j=0;j<(diffed-1);j++){
+                for(i=0;i<(numPoints-1-j);i++){
+                    x[i]=x[i]-x[i+1];
+                }
+                x.pop();
+            }
+        }
+        
+        //Calculate auto-correlation - method doesn't take stationarity into account
+        // for(var i=0;i<maxlag;i++){
+        //     var sx = 0;
+        //     var sy = 0;
+        //     var s1 = 0;
+        //     var s2 = 0;
+        //     var s3 = 0;
+            
+        //     for(var k = 0;k<(numPoints - lags[i] - diffed);k++){
+        //         sx = x[k] + sx;
+        //         sy = x[k + lags[i]] + sy;
+        //     }
+        //     sx = sx / (numPoints - lags[i] - diffed);
+        //     sy = sy / (numPoints - lags[i] - diffed);
+            
+        //     for(var k = 0;k<(numPoints - lags[i] - diffed);k++){
+        //         s1 = s1 + (x[k] - sx) * (x[k + lags[i]] - sy);
+        //         s2 = s2 + Math.pow(x[k] - sx,2);
+        //         s3 = s3 + Math.pow(x[k + lags[i]] - sy,2);
+        //     }
 
-        output.push([i, s1 / s2]);
+        //     output.push([i, s1 / Math.sqrt(s2 * s3)]);
+        // }
+        
+        //Calculate acf - assuming stationarity i.e. mean and variance constant (sort of)
+        for(i=0;i<=maxlag;i++){
+            var sx = 0;
+            var s1 = 0;
+            var s2 = 0;
+            
+            //Calculate mean
+            for(k = 0;k<(numPoints-diffed);k++){
+                sx = x[k] + sx;
+            }
+            sx = sx / (numPoints-diffed);
+            
+            //Calculate correlation
+            for(k = 0;k<(numPoints - diffed);k++){
+                if(k<(numPoints - lags[i] - diffed)){
+                    s1 = s1 + (x[k] - sx) * (x[k + lags[i]] - sx);
+                }
+                s2 = s2 + Math.pow(x[k] - sx,2);
+            }
+
+            output.push([i, s1 / s2]);
+        }
     }
     
-    return output;
+    run.output = function(){
+        return output;
+    };
+    
+    run.x = function(value){
+        if(!arguments.length){ return x_conv; }
+        x_conv = value;
+        return run;
+    };
+    
+    run.y = function(value){
+        if(!arguments.length){ return y_conv; }
+        y_conv = value;
+        return run;
+    };
+    
+    run.data = function(value){
+        data = value;
+        return run;
+    };
+    
+    run.maxlag = function(value){
+        if(!arguments.length){ return maxlag; }
+        
+        if(typeof maxlag !== 'number'){
+            throw new Error('maxlag is not a number');
+        }
+        
+        maxlag = value;
+        
+        return run;
+    };
+    
+    run.diff = function(value){
+        if(!arguments.length){ return diffed; }
+        
+        if(typeof diffed !== 'number'){
+            throw new Error('diffed is not a number');
+        }
+        
+        diffed = value;
+        
+        return run;
+    };
+    
+    return run;
 };
 /**
  * Difference the y values of a data series
@@ -1738,106 +2397,158 @@ ssci.ts.diff = function(dataArray){
  * @param {number} diffed - how many times the data has been differenced
  * @returns {array} an array of points with [lag, pacf]
  */
-ssci.ts.pacf = function(dataArray, maxlag, diffed){
-    if(arguments.length!==3){
-        throw new Error('Incorrect number of arguments passed');
-    }
-    if(typeof maxlag !== 'number'){
-        throw new Error('maxlag is not a number');
-    }
-    if(typeof diffed !== 'number'){
-        throw new Error('diffed is not a number');
-    }
-    if(maxlag>(dataArray.length-diffed)){
-        maxlag = dataArray.length-diffed;
-        console.log('Not enough points for the number of lags requested. Max lag changed to ' + maxlag);
-    }
+ssci.ts.pacf = function(){
     
     var output=[];
-    var numPoints=dataArray.length;
+    var numPoints=0;
     var lags=[];
     var x=[];
     var p=[];
     var t=[];
     var i,j,k;
+    var x_conv = function(d){ return d[0]; };
+    var y_conv = function(d){ return d[1]; };
+    var data = [];
+    var maxlag = 20;
+    var diffed = 0;
     
-    //Create lags array
-    for(i=0;i<(maxlag+1);i++){
-        lags.push(i);
-    }
-    
-    //Create data array - i.e. differenced if necessary
-    if(diffed>0){
-        for(i=0;i<(numPoints-1);i++){
-            x.push(dataArray[i][1]-dataArray[i+1][1]);
-        }
-    } else {
-        for(i=0;i<numPoints;i++){
-            x.push(dataArray[i][1]);
-        }
-    }
-    
-    if(diffed>1){
-        for(j=0;j<(diffed-1);j++){
-            for(i=0;i<(numPoints-1-j);i++){
-                x[i]=x[i]-x[i+1];
-            }
-            x.pop();
-        }
-    }
-    
-    //Calculate acf - assuming stationarity i.e. mean and variance constant
-    for(i=0;i<=maxlag;i++){
-        var sx = 0;
-        var s1 = 0;
-        var s2 = 0;
+    function run(){
+        var dataArray = [];
         
-        //Calculate mean
-        for(k = 0;k<(numPoints-diffed);k++){
-            sx = x[k] + sx;
-        }
-        sx = sx / (numPoints-diffed);
+        //Create array of data using accessors
+        dataArray = data.map( function(d){
+            return [x_conv(d), y_conv(d)];
+        });
+        numPoints = dataArray.length;
         
-        //Calculate correlation
-        for(k = 0;k<(numPoints - diffed);k++){
-            if(k<(numPoints - lags[i] - diffed)){
-                s1 = s1 + (x[k] - sx) * (x[k + lags[i]] - sx);
+        if(maxlag>(dataArray.length-diffed)){
+            maxlag = dataArray.length-diffed;
+            console.log('Not enough points for the number of lags requested. Max lag changed to ' + maxlag);
+        }
+        
+        //Create lags array
+        for(i=0;i<(maxlag+1);i++){
+            lags.push(i);
+        }
+        
+        //Create data array - i.e. differenced if necessary
+        if(diffed>0){
+            for(i=0;i<(numPoints-1);i++){
+                x.push(dataArray[i][1]-dataArray[i+1][1]);
             }
-            s2 = s2 + Math.pow(x[k] - sx,2);
+        } else {
+            for(i=0;i<numPoints;i++){
+                x.push(dataArray[i][1]);
+            }
+        }
+        
+        if(diffed>1){
+            for(j=0;j<(diffed-1);j++){
+                for(i=0;i<(numPoints-1-j);i++){
+                    x[i]=x[i]-x[i+1];
+                }
+                x.pop();
+            }
+        }
+        
+        //Calculate acf - assuming stationarity i.e. mean and variance constant
+        for(i=0;i<=maxlag;i++){
+            var sx = 0;
+            var s1 = 0;
+            var s2 = 0;
+            
+            //Calculate mean
+            for(k = 0;k<(numPoints-diffed);k++){
+                sx = x[k] + sx;
+            }
+            sx = sx / (numPoints-diffed);
+            
+            //Calculate correlation
+            for(k = 0;k<(numPoints - diffed);k++){
+                if(k<(numPoints - lags[i] - diffed)){
+                    s1 = s1 + (x[k] - sx) * (x[k + lags[i]] - sx);
+                }
+                s2 = s2 + Math.pow(x[k] - sx,2);
+            }
+
+            p.push(s1 / s2);
+        }
+        
+        //Calculate pacf
+        //Set all t[] to NaN
+        for(k=0;k<=maxlag;k++){
+            var temp2=[];
+            for(j=0;j<=maxlag;j++){
+                temp2.push(NaN);
+            }
+            t.push(temp2);
         }
 
-        p.push(s1 / s2);
-    }
-    
-    //Calculate pacf
-    //Set all t[] to zero
-    for(k=0;k<=maxlag;k++){
-        var temp2=[];
-        for(j=0;j<=maxlag;j++){
-            temp2.push(NaN);
-        }
-        t.push(temp2);
-    }
-
-    t[0][0] = 1;
-    t[1][1] = p[1];
-    for(k = 2;k<=maxlag;k++){
-        //Calculate factors to take away from p[i]
-        var totalt = 0;
-        for(j = 1;j<k;j++){
-            if (k-1 !== j && k-2 > 0){
-                t[k - 1][j] = t[k - 2][j] - t[k - 1][k - 1] * t[k - 2][k - 1 - j];
+        t[0][0] = 1;
+        t[1][1] = p[1];
+        for(k = 2;k<=maxlag;k++){
+            //Calculate factors to take away from p[i]
+            var totalt = 0;
+            for(j = 1;j<k;j++){
+                if (k-1 !== j && k-2 > 0){
+                    t[k - 1][j] = t[k - 2][j] - t[k - 1][k - 1] * t[k - 2][k - 1 - j];
+                }
+                totalt += t[k - 1][j] * p[k - j];
             }
-            totalt += t[k - 1][j] * p[k - j];
+            t[k][k] = (p[k] - totalt) / (1 - totalt);
         }
-        t[k][k] = (p[k] - totalt) / (1 - totalt);
+        
+        for(k=0;k<=maxlag;k++){
+            output.push([lags[k], t[lags[k]][lags[k]]]);
+        }
     }
     
-    for(k=0;k<=maxlag;k++){
-        output.push([lags[k], t[lags[k]][lags[k]]]);
-    }
+    run.output = function(){
+        return output;
+    };
     
-    return output;
+    run.x = function(value){
+        if(!arguments.length){ return x_conv; }
+        x_conv = value;
+        return run;
+    };
+    
+    run.y = function(value){
+        if(!arguments.length){ return y_conv; }
+        y_conv = value;
+        return run;
+    };
+    
+    run.data = function(value){
+        data = value;
+        return run;
+    };
+    
+    run.maxlag = function(value){
+        if(!arguments.length){ return maxlag; }
+        
+        if(typeof maxlag !== 'number'){
+            throw new Error('maxlag is not a number');
+        }
+        
+        maxlag = value;
+        
+        return run;
+    };
+    
+    run.diff = function(value){
+        if(!arguments.length){ return diffed; }
+        
+        if(typeof diffed !== 'number'){
+            throw new Error('diffed is not a number');
+        }
+        
+        diffed = value;
+        
+        return run;
+    };
+    
+    return run;
 };
 /**
  * Creates a string for the d attribute of the SVG <path> element given a type of path to create and a set of points

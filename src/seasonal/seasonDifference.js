@@ -4,38 +4,80 @@
  * @param {number} frequency - the number of points to difference over
  * @returns {array} - an array with the new points
  */
-ssci.season.Difference = function(dataArray, frequency){
-    if(arguments.length!==2){
-        throw new Error('Incorrect number of arguments passed');
-    }
+ssci.season.difference = function(){
     
-    var numPoints = dataArray.length;
+    var numPoints = 0;
     var output = [];
     var ma=[];
     var i;
+    var x_conv = function(d){ return d[0]; };
+    var y_conv = function(d){ return d[1]; };
+    var data = [];
+    var frequency = 12;
     
-    //Check that frequency is in range and of the right type
-    if(typeof frequency !== 'number'){
-        console.log('frequency appears to not be a number - changed to 12');
-        frequency=12;
-    }
-    if(frequency>numPoints){
-        throw new Error('Not enough data for this frequency');
-    }
-    
-    //Calculate moving average
-    for(i=frequency;i<numPoints;i++){
-        ma[i]=0;
-        for(var j=0;j<frequency;j++){
-            ma[i]+=dataArray[i-j][1];
+    function sa(){
+        var dataArray = [];
+        
+        //Create array of data using accessors
+        dataArray = data.map( function(d){
+            return [x_conv(d), y_conv(d)];
+        });
+        numPoints = dataArray.length;
+        
+        //Check that there are enough points in the data series
+        if(frequency>numPoints){
+            throw new Error('Not enough data for this frequency');
         }
-        ma[i]/=frequency;
+        
+        //Calculate moving average
+        for(i=frequency;i<numPoints;i++){
+            ma[i]=0;
+            for(var j=0;j<frequency;j++){
+                ma[i]+=dataArray[i-j][1];
+            }
+            ma[i]/=frequency;
+        }
+        
+        //Difference data
+        for(i=frequency;i<numPoints;i++){
+            output.push([dataArray[i][0], dataArray[i][1]-dataArray[i-frequency][1]+ma[i]]);
+        }
     }
     
-    //Difference data
-    for(i=frequency;i<numPoints;i++){
-        output.push([dataArray[i][0], dataArray[i][1]-dataArray[i-frequency][1]+ma[i]]);
-    }
+    sa.output = function(){
+        return output;
+    };
     
-    return output;
+    sa.x = function(value){
+        if(!arguments.length){ return x_conv; }
+        x_conv = value;
+        return sa;
+    };
+    
+    sa.y = function(value){
+        if(!arguments.length){ return y_conv; }
+        y_conv = value;
+        return sa;
+    };
+    
+    sa.data = function(value){
+        data = value;
+        return sa;
+    };
+    
+    sa.frequency = function(value){
+        if(!arguments.length){ return frequency; }
+        
+        //Check that frequency is in range and of the right type
+        if(typeof value !== 'number'){
+            console.log('frequency appears to not be a number - changed to 12');
+            frequency=12;
+        }
+        
+        frequency = value;
+        
+        return sa;
+    };
+    
+    return sa;
 };

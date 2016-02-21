@@ -26,9 +26,9 @@ ssci.mr.cnegbin = function(r, m, b){
     var cnb=0;
     
     if (r < 1){
-        cnb = this.negbin(0, m, b);
+        cnb = ssci.mr.negbin(0, m, b);
     } else {
-        cnb = this.negbin(r, m, b) + this.cnegbin(r-1, m, b);
+        cnb = ssci.mr.negbin(r, m, b) + ssci.mr.cnegbin(r-1, m, b);
     }
     
     return cnb;
