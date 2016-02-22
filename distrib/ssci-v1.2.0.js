@@ -1,6 +1,6 @@
 /*! ssci v1.2.0 
  *  JavaScript smoothing, seasonal and regression functions 
- *  2016-02-21 
+ *  2016-02-22 
  *  License: GPL-3.0 
  *  Copyright (C) 2016 Simon West
  */
@@ -1702,8 +1702,23 @@ ssci.smooth.filter = function(){
         return sm;
     };
     
-    sm.gain = function(){
-        //To do
+    sm.gain = function(d){
+        //Create gain function
+        //c = filter
+        //d = periodicity to calculate it for
+        
+        var temp = 0;
+        var g1 = 0;
+        var g2 = 0;
+            
+        for(i=0;i<filter.length;i++){
+            g1 = g1 + filter[j] * Math.cos((j-l_width) * 2 * Math.PI / d);
+            g2 = g2 + filter[j] * Math.sin((j-l_width) * 2 * Math.PI / d);
+        }
+        
+        temp = Math.sqrt(g1*g1 + g2*g2);
+        
+        return temp;
     };
     
     sm.phaseShift = function(){
@@ -2559,6 +2574,7 @@ ssci.gamma = function(z) {
         return Math.sqrt(2 * Math.PI) * Math.pow(t, (z + 0.5)) * Math.exp(-t) * x;
     }
 };
+
 /**
  * Creates a string for the d attribute of the SVG <path> element given a type of path to create and a set of points
  * @param {string} interpolation - the type of path to create - linear or cubic
@@ -2584,6 +2600,7 @@ ssci.interpString = function(interpolation, points){
     
     return outputString;
 };
+
 
 
 /**

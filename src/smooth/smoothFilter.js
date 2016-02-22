@@ -123,13 +123,54 @@ ssci.smooth.filter = function(){
         return sm;
     };
     
-    sm.gain = function(){
-        //To do
+    sm.gain = function(d){
+        //Create gain function
+        
+        var temp = 0;
+        var g1 = 0;
+        var g2 = 0;
+            
+        for(i=0;i<filter.length;i++){
+            g1 = g1 + filter[i] * Math.cos((i-l_width) * 2 * Math.PI / d);
+            g2 = g2 + filter[i] * Math.sin((i-l_width) * 2 * Math.PI / d);
+        }
+        
+        temp = Math.sqrt(g1*g1 + g2*g2);
+        
+        return temp;
     };
     
-    sm.phaseShift = function(){
-        //To do
+    sm.phaseShift = function(d){
+        var g1 = 0;
+        var g2 = 0;
+            
+        for(i=0;i<filter.length;i++){
+            g1 = g1 + filter[i] * Math.cos((i-l_width) * 2 * Math.PI / d);
+            g2 = g2 + filter[i] * Math.sin((i-l_width) * 2 * Math.PI / d);
+        }
+        
+        return pf(g1, g2);
     };
+
+    function pf(c, s){
+        
+        if( c > 0 ){
+            return Math.atan(s / c);
+        } else if (c < 0 && s >= 0){
+            return Math.atan(s / c) + Math.PI;
+        } else if (c < 0 && s < 0){
+            return Math.atan(s / c) - Math.PI;
+        } else if (c === 0 && s > 0) {
+            return Math.PI / 2;
+        } else if (c === 0 && s < 0) {
+            return -Math.PI / 2;
+        } else if (c === 0 && s === 0) {
+            return 0;
+        } else {
+            return Number.NaN;
+        }
+        
+    }
 
     return sm;
     

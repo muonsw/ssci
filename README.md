@@ -4,9 +4,9 @@
 This library was originally written to help with modifying data prior to charting it via the D3 JavaScript library.
 
 Most of the functions no longer require the data in the form of arrays of points (i.e. x and y coordinates) but access the data via functions passed to the function. So data is generally passed via a:
-```.data(data)```
+``` .data(data) ```
 function. And x and y coordinates are specified by passing a function via:
-```.x(function(d){ return d.year })```
+``` .x(function(d){ return d.year }) ```
 In this example the x data is in the year variable within the data object.
 
 ## Download
