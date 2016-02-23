@@ -20,9 +20,6 @@ module.exports = function(grunt) {
   var lMinRelease = 'distrib/'+latest+'.min.js';
   var lSourceMapMin = 'distrib/source-map-'+latest+'.min.js';
   
-  var testEnvDir = 'C:/inetpub/wwwroot/js/' + latest + '.js';
-  var testEnvDirMin = 'C:/inetpub/wwwroot/js/' + latest + '.min.js';
-  
   grunt.initConfig({
     pkg : grunt.file.readJSON('package.json'),
     
@@ -45,15 +42,7 @@ module.exports = function(grunt) {
       smMinified: { // source map of minified release file
         src: sourceMapMin,
         dest: lSourceMapMin
-      },
-	  testEnv: {
-		src: lDevRelease,
-		dest: testEnvDir
-	  },
-	  testEnvMinified: {
-		src: lMinRelease,
-		dest: testEnvDirMin
-	  }
+      }
     },
     // uglify configuration
     uglify: {
