@@ -1,22 +1,21 @@
 /** 
  * Take an array of points and returns a set of smoothed points by applying a filter to the data around the central point
- * @param {array} dataArray - an array of points
- * @param {number} filter - an array containing the filter to apply. The filter is a series of weights to apply to the data points. Should be odd and sum to one for the filtered series to sum to the original series.
- * @param {string} removeEnds - if true then removes data that can't be filtered at the start and end of the series. If false applies the filter assymmetrically.
- * @returns {array} - an array with the new points
  */
-ssci.smooth.filterOld = function(){
+ssci.smooth.filter = function(){
     
     var numPoints = 0;
-    var output = [];
-    var l_width=0;
-    var b=0;
+    var output    = [];
+    var l_width   = 1;
+    var b         = 0;
     var i,j;        //Iterators
-    var x_conv = function(d){ return d[0]; };
-    var y_conv = function(d){ return d[1]; };
-    var data = [];
-    var filter = [];
+    var x_conv    = function(d){ return d[0]; };
+    var y_conv    = function(d){ return d[1]; };
+    var data      = [];
+    var filter    = [1/3, 1/3, 1/3];
     var removeEnds = true;
+    var m1        = -1;
+    var m2        = 1;
+    var limitSet  = false;
     
     function sm(){
         var dataArray = [];
@@ -28,46 +27,45 @@ ssci.smooth.filterOld = function(){
         numPoints = dataArray.length;
         
         l_width = Math.floor(filter.length/2);
-    
-        //Take care of the start where filtering can't take place
-        if(!removeEnds){
-            for(i=0;i<l_width;i++){
-                b=0;
-                for(j=0;j<2*l_width+1;j++){
-                    if((i+j-l_width)>=0){
-                        b+=dataArray[i+j-l_width][1]*filter[j];
-                    } else {
-                        b+=dataArray[i][1]*filter[j];
-                    }
-                }
-                output.push([dataArray[i][0], b]);
+        
+        if(!limitSet){
+            if(filter.length % 2 === 0){
+                m1 = -(Math.floor(filter.length/2))+1;
+                m2 = Math.floor(filter.length/2);
+            } else {
+                m1 = -(Math.floor(filter.length/2));
+                m2 = Math.floor(filter.length/2);
+            }
+        } else {
+            //Check that the limits cover the filter length
+            if(-m1+m2+1!==filter.length){
+                throw new Error("Filter length is different to limits");
             }
         }
         
         //Filter the data
-        for(i=l_width;i<numPoints-l_width;i++){
+        for(i=0;i<numPoints;i++){
             b=0;
-            for(j=0;j<2*l_width+1;j++){
-                b+=dataArray[i+j-l_width][1]*filter[j];
-            }
-            
-            output.push([dataArray[i][0], b]);
-        }
-        
-        //Take care of the end where filtering can't take place
-        if(!removeEnds){
-            for(i=numPoints-l_width;i<numPoints;i++){
-                b=0;
-                for(j=0;j<2*l_width+1;j++){
-                    if((i+j-l_width)<numPoints){
-                        b+=dataArray[i+j-l_width][1]*filter[j];
-                    } else {
+            for(j=0;j<filter.length;j++){
+                //Check that i+j+m1>-1 && i+j+m1<numPoints 
+                //If not then then use first point and roll up filter if removeEnds=false
+                if(i+j+m1>-1 && i+j+m1<numPoints){
+                    b+=dataArray[i+j+m1][1]*filter[j];
+                } else {
+                    if(!removeEnds){
                         b+=dataArray[i][1]*filter[j];
                     }
                 }
+            }
+            
+            if(removeEnds && i+m1>-1 && i+m2<numPoints){
+                output.push([dataArray[i][0], b]);
+            }
+            if(!removeEnds){
                 output.push([dataArray[i][0], b]);
             }
         }
+        
     }
     
     sm.output = function(){
@@ -98,14 +96,18 @@ ssci.smooth.filterOld = function(){
         if(!(typeof value === 'object' && Array.isArray(value))){
             throw new Error('Filter must be an array');
         }
-        if(value.length % 2 === 0){
-            throw new Error('Filter must be of an odd size');
-        }
-        if(value.length < 3){
-            throw new Error('Filter size must be greater than 2');
-        }
         
         filter = value;
+        
+        return sm;
+    };
+    
+    sm.limits = function(value){
+        if(!arguments.length){ return [m1,m2]; }
+        
+        m1 = value[0];
+        m2 = value[1];
+        limitSet = true;
         
         return sm;
     };
