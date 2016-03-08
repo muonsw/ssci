@@ -30,6 +30,9 @@ ssci.smooth.kernel = function(){
     function sk() {
         var dataArray = [];
         
+        //Clear output array - needed to stop output growing when function called repeatedly
+		output = [];
+        
         //Create array of data using accessors
         dataArray = data.map( function(d){
             return [x_conv(d), y_conv(d)];

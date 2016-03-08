@@ -1,6 +1,6 @@
-/*! ssci v1.2.2 
+/*! ssci v1.2.3 
  *  JavaScript smoothing, seasonal and regression functions 
- *  2016-02-24 
+ *  2016-03-08 
  *  License: GPL-3.0 
  *  Copyright (C) 2016 Simon West
  */
@@ -38,6 +38,9 @@ ssci.fore.expon = function(){
     function retVar(){
         var i;
         var dataArray = [];
+        
+        //Clear output array - needed to stop output growing when function called repeatedly
+		output = [];
         
         //Create array of data using accessors
         dataArray = data.map( function(d){
@@ -140,6 +143,9 @@ ssci.fore.holtWinter = function(){
     
     function retVar(){
         var i;
+        
+        //Clear output array - needed to stop output growing when function called repeatedly
+		output = [];
         
         //Create array of data using accessors
         dataArray = data.map( function(d){
@@ -395,6 +401,9 @@ ssci.fore.holt = function(){
     
     function retVar(){
         var i;
+        
+        //Clear output array - needed to stop output growing when function called repeatedly
+		output = [];
         
         //Create array of data using accessors
         dataArray = data.map( function(d){
@@ -790,6 +799,9 @@ ssci.reg.poly = function(){
     function rp(){
         var dataArray = [];
         
+        //Clear output array - needed to stop output growing when function called repeatedly
+		output = [];
+        
         //Create array of data using accessors
         dataArray = data.map( function(d){
             return [x_conv(d), y_conv(d)];
@@ -918,6 +930,9 @@ ssci.reg.polyBig = function(){
     
     function rp(){
         var dataArray = [];
+        
+        //Clear output array - needed to stop output growing when function called repeatedly
+		output = [];
         
         //Create array of data using accessors
         dataArray = data.map( function(d){
@@ -1077,6 +1092,9 @@ ssci.season.average = function(){
     function sa(){
         var dataArray = [];
         
+        //Clear output array - needed to stop output growing when function called repeatedly
+		output = [];
+        
         //Create array of data using accessors
         dataArray = data.map( function(d){
             return [x_conv(d), y_conv(d)];
@@ -1182,6 +1200,9 @@ ssci.season.difference = function(){
     function sa(){
         var dataArray = [];
         
+        //Clear output array - needed to stop output growing when function called repeatedly
+		output = [];
+        
         //Create array of data using accessors
         dataArray = data.map( function(d){
             return [x_conv(d), y_conv(d)];
@@ -1269,6 +1290,9 @@ ssci.season.movingAverage = function(){
     
     function sa(){
         var dataArray = [];
+        
+        //Clear output array - needed to stop output growing when function called repeatedly
+		output = [];
         
         //Create array of data using accessors
         dataArray = data.map( function(d){
@@ -1359,7 +1383,7 @@ ssci.season.movingAverage = function(){
 /**
  * Create henderson filters of term 'term'
  * Returns an array with the terms
- *  
+ * Formula taken from http://www.ons.gov.uk/ons/rel/elmr/economic-trends--discontinued-/no--633--august-2006/fitting-trends-to-time-series-data.pdf
  */ 
 
 ssci.smooth.henderson = function(term){
@@ -1548,6 +1572,9 @@ ssci.smooth.EWMA = function(){
     function sm(){
         var dataArray = [];
         
+        //Clear output array - needed to stop output growing when function called repeatedly
+		output = [];
+        
         //Create array of data using accessors
         dataArray = data.map( function(d){
             return [x_conv(d), y_conv(d)];
@@ -1629,6 +1656,9 @@ ssci.smooth.filterOld = function(){
     
     function sm(){
         var dataArray = [];
+        
+        //Clear output array - needed to stop output growing when function called repeatedly
+		output = [];
         
         //Create array of data using accessors
         dataArray = data.map( function(d){
@@ -1806,6 +1836,9 @@ ssci.smooth.filter = function(){
     
     function sm(){
         var dataArray = [];
+        
+        //Clear output array - needed to stop output growing when function called repeatedly
+		output = [];
         
         //Create array of data using accessors
         dataArray = data.map( function(d){
@@ -1997,6 +2030,9 @@ ssci.smooth.kernel = function(){
     function sk() {
         var dataArray = [];
         
+        //Clear output array - needed to stop output growing when function called repeatedly
+		output = [];
+        
         //Create array of data using accessors
         dataArray = data.map( function(d){
             return [x_conv(d), y_conv(d)];
@@ -2127,6 +2163,9 @@ ssci.smooth.kernel2 = function(){
     
     function sk() {
         var dataArray = [];
+		
+		//Clear output array - needed to stop output growing when function called repeatedly
+		output = [];
         
         //Create array of data using accessors
         dataArray = data.map( function(d){
@@ -2281,6 +2320,9 @@ ssci.smooth.quadratic = function(){
     function qb() {
         var dataArray = [];
         
+        //Clear output array - needed to stop output growing when function called repeatedly
+		output = [];
+        
         //Create array of data using accessors
         dataArray = data.map( function(d){
             return [x_conv(d), y_conv(d)];
@@ -2387,6 +2429,9 @@ ssci.smooth.quadraticBig = function(){
     function qb() {
         var dataArray = [];
         
+        //Clear output array - needed to stop output growing when function called repeatedly
+		output = [];
+        
         //Create array of data using accessors
         dataArray = data.map( function(d){
             return [x_conv(d), y_conv(d)];
@@ -2480,6 +2525,9 @@ ssci.ts.acf = function(){
     
     function run(){
         var dataArray = [];
+        
+        //Clear output array - needed to stop output growing when function called repeatedly
+		output = [];
         
         //Create array of data using accessors
         dataArray = data.map( function(d){
@@ -2651,6 +2699,9 @@ ssci.ts.pacf = function(){
     
     function run(){
         var dataArray = [];
+        
+        //Clear output array - needed to stop output growing when function called repeatedly
+		output = [];
         
         //Create array of data using accessors
         dataArray = data.map( function(d){
