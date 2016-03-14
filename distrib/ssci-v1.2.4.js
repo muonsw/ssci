@@ -1,6 +1,6 @@
-/*! ssci v1.2.3 
+/*! ssci v1.2.4 
  *  JavaScript smoothing, seasonal and regression functions 
- *  2016-03-08 
+ *  2016-03-14 
  *  License: GPL-3.0 
  *  Copyright (C) 2016 Simon West
  */
@@ -1816,7 +1816,7 @@ ssci.smooth.filterOld = function(){
 };
 
 /** 
- * Take an array of points and returns a set of smoothed points by applying a filter to the data around the central point
+ * Take an array of points and returns a set of smoothed points by applying a filter to the data
  */
 ssci.smooth.filter = function(){
     
@@ -1953,8 +1953,8 @@ ssci.smooth.filter = function(){
         var g2 = 0;
             
         for(i=0;i<filter.length;i++){
-            g1 = g1 + filter[i] * Math.cos((i-l_width) * 2 * Math.PI / d);
-            g2 = g2 + filter[i] * Math.sin((i-l_width) * 2 * Math.PI / d);
+            g1 = g1 + filter[i] * Math.cos((i+m1) * 2 * Math.PI / d);
+            g2 = g2 + filter[i] * Math.sin((i+m1) * 2 * Math.PI / d);
         }
         
         temp = Math.sqrt(g1*g1 + g2*g2);
@@ -1967,8 +1967,8 @@ ssci.smooth.filter = function(){
         var g2 = 0;
             
         for(i=0;i<filter.length;i++){
-            g1 = g1 + filter[i] * Math.cos((i-l_width) * 2 * Math.PI / d);
-            g2 = g2 + filter[i] * Math.sin((i-l_width) * 2 * Math.PI / d);
+            g1 = g1 + filter[i] * Math.cos((i+m1) * 2 * Math.PI / d);
+            g2 = g2 + filter[i] * Math.sin((i+m1) * 2 * Math.PI / d);
         }
         
         return pf(g1, g2);
