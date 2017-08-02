@@ -4,7 +4,7 @@ module.exports = function(grunt) {
                     ' *  <%= pkg.description %> \n' +
                     ' *  <%= grunt.template.today("yyyy-mm-dd") %> \n' +
                     ' *  License: <%= pkg.license %> \n' +
-					' *  Copyright (C) 2016 Simon West\n */' +
+					' *  Copyright (C) 2017 Simon West\n */' +
 					"\n\nvar ssci = (function(){ \n  'use strict';\n\n";
   var name = '<%= pkg.name %>-v<%= pkg.version%>';
   var footerContent = '\nreturn ssci;\n\n}( this ));';

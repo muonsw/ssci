@@ -1,13 +1,13 @@
 {
   "name": "ssci",
-  "version": "1.2.4",
+  "version": "1.2.5",
   "description": "JavaScript smoothing, seasonal and regression functions",
   "main": "src/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Simon West",
-  "license": "GPL-3.0",
+  "license": "MIT",
   "dependencies": {
     "big.js": "^3.1.3"
   },
@@ -18,5 +18,11 @@
     "grunt-contrib-jshint": "^0.12.0",
     "grunt-contrib-qunit": "^0.7.0",
     "grunt-contrib-uglify": "^0.11.0"
-  }
+  },
+  "keywords": [
+    "smoothing",
+    "seasonal",
+    "regression",
+    "time series"
+  ]
 }

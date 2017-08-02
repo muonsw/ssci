@@ -1,8 +1,8 @@
-/*! ssci v1.2.4 
+/*! ssci v1.2.5 
  *  JavaScript smoothing, seasonal and regression functions 
- *  2016-03-14 
- *  License: GPL-3.0 
- *  Copyright (C) 2016 Simon West
+ *  2017-08-02 
+ *  License: MIT 
+ *  Copyright (C) 2017 Simon West
  */
 
 var ssci = (function(){ 
@@ -120,7 +120,6 @@ ssci.fore.expon = function(){
 
 /**
  * Holt Winters exponential smoothing
- * This behaves differently to the other functions. It takes no parameters on initialisation but requires chaining of functions on the main function
  * @return {object} Object containing the forecast points, the residuals, the sum of squares of the residuals etc.
  */
 ssci.fore.holtWinter = function(){
@@ -1381,6 +1380,60 @@ ssci.season.movingAverage = function(){
 };
 
 /**
+ * Calculate asymmetric henderson weights
+ * Formula taken from Doherty, M (2001); THE SURROGATE HENDERSON FILTERS IN X-11; Aust. N. Z. J. Stat. 43(4), 2001, 901–999
+ * which I found here - http://www.stats.govt.nz/~/media/Statistics/surveys-and-methods/methods/data-analysis/x-12-arima-doherty.pdf
+ * @param {array} filter - the filter to be adjusted to be asymmetric - i.e. the Henderson filter 
+ * @param {number} term  - the length of the assymetric Henderson filter to be returned - needs to be less than filter.length
+ * @param {number} IC    - Quoting from the PDF above - Here, for an additive adjustment, I is the average of absolute month to month change in the estimated irregular, and C is the average of the absolute month to month changes in an estimate of the trend. For a multiplicative adjustment, the I/C ratio is also used. However,the numerator is the average of the absolute monthly percentage changes in an estimated irregular; the denominator is the average of the absolute monthly percentage changes in an estimated trend. It can take a value from 0 to roughly 4.5.
+ * @returns - an array containing the filter
+ */
+
+ssci.smooth.ahenderson = function(filter, term, IC){
+    if(typeof term !== 'number'){
+        throw new Error('Term must a number');
+    }
+    if(term < 0){
+        throw new Error('Term must be >0');
+    }
+    
+    //Filter must be array
+    if(!(typeof filter === 'object' && Array.isArray(filter))){
+        throw new Error('Filter must be an array');
+    }
+    
+    //IC greater than zero
+    if(IC < 0){
+        throw new Error('I/C must be >0');
+    }
+    
+    var output=[];
+    var bs = (4/Math.PI)/Math.pow(IC,2);
+    var i,j;
+    
+    //fill output with zeroes
+    for(i=0; i<filter.length; i++){
+        output.push(0);
+    }
+    
+    for(i=0; i<term; i++){
+        var totW=0;
+        for(j = term; j<filter.length; j++){
+            totW+=filter[j];
+        }
+        
+        var totW2=0;
+        for(j = term; j<filter.length; j++){
+            totW2+=((j+1)-(term+1)/2)*filter[j];
+        }
+        
+        output[filter.length-term+i] = filter[i] + (1/term)*totW + (((i+1-(term+1)/2)*bs)/(1+((term*(term-1)*(term+1))/12)*bs)*totW2);
+    }
+    
+    return output;
+};
+
+/**
  * Create henderson filters of term 'term'
  * Returns an array with the terms
  * Formula taken from http://www.ons.gov.uk/ons/rel/elmr/economic-trends--discontinued-/no--633--august-2006/fitting-trends-to-time-series-data.pdf
@@ -1820,19 +1873,20 @@ ssci.smooth.filterOld = function(){
  */
 ssci.smooth.filter = function(){
     
-    var numPoints = 0;
-    var output    = [];
-    var l_width   = 1;
-    var b         = 0;
+    var numPoints  = 0;
+    var output     = [];
+    var b          = 0;
     var i,j;        //Iterators
-    var x_conv    = function(d){ return d[0]; };
-    var y_conv    = function(d){ return d[1]; };
-    var data      = [];
-    var filter    = [1/3, 1/3, 1/3];
+    var x_conv     = function(d){ return d[0]; };
+    var y_conv     = function(d){ return d[1]; };
+    var data       = [];
+    var filter     = [1/3, 1/3, 1/3];
     var removeEnds = true;
-    var m1        = -1;
-    var m2        = 1;
-    var limitSet  = false;
+    var m1         = -1;
+    var m2         = 1;
+    var limitSet   = false;
+    var l_filt     = function(d, term){ return ssci.smooth.ahenderson(d, term, 3.5).reverse(); };
+    var r_filt     = function(d, term){ return ssci.smooth.ahenderson(d, term, 3.5); };
     
     function sm(){
         var dataArray = [];
@@ -1846,8 +1900,6 @@ ssci.smooth.filter = function(){
         });
         numPoints = dataArray.length;
         
-        l_width = Math.floor(filter.length/2);
-        
         if(!limitSet){
             if(filter.length % 2 === 0){
                 m1 = -(Math.floor(filter.length/2))+1;
@@ -1859,21 +1911,47 @@ ssci.smooth.filter = function(){
         } else {
             //Check that the limits cover the filter length
             if(-m1+m2+1!==filter.length){
-                throw new Error("Filter length is different to limits");
+                throw new Error("Filter length is different to length specified by limits");
             }
         }
         
         //Filter the data
         for(i=0;i<numPoints;i++){
             b=0;
+            
+            //Calculate adjusted filter
+            var afilter = [];
+            if(!removeEnds && m1+i<0){
+                afilter = l_filt(filter, filter.length+i+m1);
+            } else if(!removeEnds && i+m2>(numPoints-1)){
+                afilter = r_filt(filter, numPoints-i+m2);
+            } else {
+                afilter = filter.slice();
+            }
+            
+            //Why am I not using afilter.length in the for statement below?
             for(j=0;j<filter.length;j++){
                 //Check that i+j+m1>-1 && i+j+m1<numPoints 
-                //If not then then use first point and roll up filter if removeEnds=false
-                if(i+j+m1>-1 && i+j+m1<numPoints){
-                    b+=dataArray[i+j+m1][1]*filter[j];
+                if(removeEnds){
+                    if(i+j+m1>-1 && i+j+m1<numPoints){
+                        b+=dataArray[i+j+m1][1]*afilter[j];
+                    } else {
+                        //Do nothing
+                    }
                 } else {
-                    if(!removeEnds){
-                        b+=dataArray[i][1]*filter[j];
+                    if(i+j+m1>-1 && i+j+m1<numPoints){
+                        if(m1+i<0){
+                            b+=dataArray[i+j+m1][1]*afilter[j+i+m1];
+                            //console.log("l",i,j,dataArray[i+j+m1][1],afilter[j+i+m1],m1,m2);
+                        } else if(i+m2>(numPoints-1)){
+                            b+=dataArray[i+j+m1][1]*afilter[j+i-numPoints+1-m1];
+                            //console.log("r",i,j,dataArray[i+j+m1][1],afilter[j+i-numPoints+1-m1],m1,m2);
+                        } else {
+                            b+=dataArray[i+j+m1][1]*afilter[j];
+                            //console.log("c",i,j,dataArray[i+j+m1][1],afilter[j],m1,m2);
+                        }
+                    } else {
+                        //Do nothing
                     }
                 }
             }
@@ -1910,9 +1988,10 @@ ssci.smooth.filter = function(){
     };
     
     sm.filter = function(value){
+        //Set the filter
         if(!arguments.length){ return filter; }
         
-        //Check that the filter is an array and size is odd
+        //Check that the filter is an array
         if(!(typeof value === 'object' && Array.isArray(value))){
             throw new Error('Filter must be an array');
         }
@@ -1923,7 +2002,17 @@ ssci.smooth.filter = function(){
     };
     
     sm.limits = function(value){
+        //Set limits of filter i.e. where to apply it
         if(!arguments.length){ return [m1,m2]; }
+        
+        //Check that the 'limits' is an array
+        if(!(typeof value === 'object' && Array.isArray(value))){
+            throw new Error('Limits must be an array');
+        }
+        //Check input array length
+        if(value.length !== 2){ throw new Error("Limits must be an array of length 2"); }
+        //Check that the inputs are numbers
+        if(typeof value[0]!=='number' && typeof value[1]!=='number'){ throw new Error('Input must be a number'); }
         
         m1 = value[0];
         m2 = value[1];
@@ -1932,21 +2021,28 @@ ssci.smooth.filter = function(){
         return sm;
     };
     
+    /**
+     * Set whether values are calculated for the end of a series - false to calculate them
+     */
     sm.end = function(value){
         if(!arguments.length){ return removeEnds; }
         
         //Check removeEnds
         if(typeof removeEnds !== 'boolean'){
             removeEnds = true;
+        } else {
+            removeEnds = value;
         }
-        
-        removeEnds = value;
         
         return sm;
     };
     
+    /**
+     * Calculate gain
+     * @param {number} d The period to calculate the gain for
+     */
     sm.gain = function(d){
-        //Create gain function
+        if(typeof d !== 'number'){ throw new Error('Input must be a number'); }
         
         var temp = 0;
         var g1 = 0;
@@ -1962,7 +2058,15 @@ ssci.smooth.filter = function(){
         return temp;
     };
     
+    /**
+     * Calculate the phase shift caused by the filter
+     * @param {number} d The period to calculate the phase shift for
+     */
     sm.phaseShift = function(d){
+        //
+        
+        if(typeof d !== 'number'){ throw new Error('Input must be a number'); }
+        
         var g1 = 0;
         var g2 = 0;
             
@@ -1971,7 +2075,7 @@ ssci.smooth.filter = function(){
             g2 = g2 + filter[i] * Math.sin((i+m1) * 2 * Math.PI / d);
         }
         
-        return pf(g1, g2);
+        return pf(g1, g2)/(2 * Math.PI / d);
     };
 
     function pf(c, s){
@@ -1993,6 +2097,26 @@ ssci.smooth.filter = function(){
         }
         
     }
+
+    /**
+     * Set or get the function to calculate the weights for the start of the data series if 'end' is false
+     * @param {function} 
+     */
+    sm.left = function(value){
+        if(!arguments.length){ return l_filt; }
+        l_filt = value;
+        return sm;
+    };
+    
+    /**
+     * Set or get the function to calculate the weights for the end of the data series if 'end' is false
+     */
+    sm.right = function(value){
+        //
+        if(!arguments.length){ return r_filt; }
+        r_filt = value;
+        return sm;
+    };
 
     return sm;
     

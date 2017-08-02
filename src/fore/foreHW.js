@@ -1,6 +1,5 @@
 /**
  * Holt Winters exponential smoothing
- * This behaves differently to the other functions. It takes no parameters on initialisation but requires chaining of functions on the main function
  * @return {object} Object containing the forecast points, the residuals, the sum of squares of the residuals etc.
  */
 ssci.fore.holtWinter = function(){
