@@ -1,13 +1,18 @@
 # ssci
 ## JavaScript smoothing, seasonal and regression functions
 
-This library was originally written to help with modifying data prior to charting it via the D3 JavaScript library.
+This library contains functions to smooth, deseasonalise and forecast data series.
 
-Most of the functions no longer require the data in the form of arrays of points (i.e. x and y coordinates) but access the data via functions passed to the function. So data is generally passed via a:
+It was originally written to help with modifying data prior to charting it via the D3 JavaScript library but can be used more generally (and with other charting libraries).
+
+As the focus of the library is on time series data, most of the functions require a 2 dimensional set of data (i.e. a set of points with x and y coordinates). The data can be in any form and is accessed by functions passed to the function. So data is generally passed via a:
 ``` .data(data) ```
-function. And x and y coordinates are specified by passing a function via:
+function. And x coordinates are specified by passing a function via:
 ``` .x(function(d){ return d.year }) ```
-In this example the x data is in the year variable within the data object.
+In this example the x data is in the year variable within the data object. A similar function exists for the y coordinate.
+
+The default data accessor functions treat the data as an array of arrays of x and y corrdinates:
+``` [ [x1, y1], [x2, y2] , [x3,y3] ... ] ```
 
 ## Download
 Use the **ssci.js** or **ssci.min.js** files from the distrib folder. 
