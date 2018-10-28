@@ -1,8 +1,7 @@
 /**
- * Exponential smoothing
- * @param {array} dataArray - an array of points
- * @param {number} factor - factor to smooth by
- * @return {object} Object containing the forecast points, the residuals, the sum of squares of the residuals and the factor
+ * Exponential smoothing - smooth a series of points
+ * Points passed in via the .data() function
+ * Calculates the forecast points, the residuals, the sum of squares of the residuals and the factor
  */
 ssci.fore.expon = function(){
     var data = [];

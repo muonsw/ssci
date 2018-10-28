@@ -4,10 +4,9 @@ module.exports = function(grunt) {
                     ' *  <%= pkg.description %> \n' +
                     ' *  <%= grunt.template.today("yyyy-mm-dd") %> \n' +
                     ' *  License: <%= pkg.license %> \n' +
-					' *  Copyright (C) 2017 Simon West\n */' +
-					"\n\nvar ssci = (function(){ \n  'use strict';\n\n";
+					' *  Copyright (C) 2018 Simon West\n */\n\n';
   var name = '<%= pkg.name %>-v<%= pkg.version%>';
-  var footerContent = '\nreturn ssci;\n\n}( this ));';
+  var footerContent = '';
   
   /* define filenames */
   var latest = '<%= pkg.name %>';
@@ -19,6 +18,10 @@ module.exports = function(grunt) {
   var lDevRelease = 'distrib/'+latest+'.js';
   var lMinRelease = 'distrib/'+latest+'.min.js';
   var lSourceMapMin = 'distrib/source-map-'+latest+'.min.js';
+  
+  var bDevRelease = 'distrib/'+latest+'-big.js';
+  var bMinRelease = 'distrib/'+latest+'-big.min.js';
+  var bSourceMapMin = 'distrib/source-map-'+latest+'-big.min.js';
   
   grunt.initConfig({
     pkg : grunt.file.readJSON('package.json'),
@@ -47,15 +50,17 @@ module.exports = function(grunt) {
     // uglify configuration
     uglify: {
       options: {
-        banner: bannerContent,
-		footer: footerContent,
         sourceMapRoot: '../',
         sourceMap: 'distrib/'+name+'.min.js.map',
         sourceMapUrl: name+'.min.js.map'
       },
       target : {
-        src : ['src/*.js', 'src/*/*.js'],
+        src : 'distrib/' + name + '.js',
         dest : 'distrib/' + name + '.min.js'
+      },
+	  extras : {
+        src : 'distrib/' + latest + '-big.js',
+        dest : 'distrib/' + latest + '-big.min.js'
       }
     },
     // concat configuration
@@ -65,8 +70,12 @@ module.exports = function(grunt) {
         footer: footerContent
       },
       target : {
-        src : ['src/*.js', 'src/*/*.js'],
+        src : ['src/banner.txt', 'src/*.js', 'src/*/*.js', 'src/footer.txt'],
         dest : 'distrib/' + name + '.js'
+      },
+	  extras: {
+        src: ['node_modules/big.js/big.js', 'distrib/' + name + '.js'],
+        dest: 'distrib/' + latest + '-big.js'
       }
     },
     //jshint configuration

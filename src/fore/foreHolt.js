@@ -18,6 +18,38 @@ ssci.fore.holt = function(){
     var y_conv = function(d){ return d[1]; };
     var l=[];
     var t=[];
+    var funcs_T = {
+        '1': t1,
+        '2': t2,
+        '3': t3,
+        '4': t4
+    };
+    var funcT = '1';    //Function to use to calculate the starting value of 
+
+    /**
+     * Initial average difference between first three pairs of points
+     */
+    function t1(){
+        return (1/3)*(dataArray[1][1]-dataArray[0][1])+(dataArray[2][1]-dataArray[1][1])+(dataArray[3][1]-dataArray[2][1]);
+    }
+    /**
+     * Calculate trend for entire series and multiply by average distance between points
+     */
+    function t2(){
+        return ssci.reg.polyBig(dataArray,1).constants[1] * ((dataArray[numPoints-1][0]-dataArray[0][0])/(numPoints-1));
+    }
+    /**
+     * Trend for first to second point
+     */
+    function t3(){
+        return dataArray[1][1]-dataArray[0][1];
+    }
+    /**
+     * Trend between first and last point
+     */
+    function t4(){
+        return (dataArray[numPoints-1][1]-dataArray[0][1])/(numPoints-1);
+    }
     
     function retVar(){
         var i;
@@ -41,16 +73,7 @@ ssci.fore.holt = function(){
         
         //Generate starting value for t - initial average difference between first three pairs of points
         if(t.length===0){
-            t.push((1/3)*(dataArray[1][1]-dataArray[0][1])+(dataArray[2][1]-dataArray[1][1])+(dataArray[3][1]-dataArray[2][1]));
-            
-            //Alternative 1 - calculate trend for entire series and multiply by average distance between points
-            //t.push(ssci.reg.polyBig(dataArray,1).constants[1] * ((dataArray[numPoints-1][0]-dataArray[0][0])/(numPoints-1)));
-        
-            //Alternative 2 - trend for first to second point
-            //t.push(dataArray[1][1]-dataArray[0][1]);
-            
-            //Alternative 3 - trend between first and last point
-            //t.push((dataArray[numPoints-1][1]-dataArray[0][1])/(numPoints-1));
+            t.push(funcs_T[funcT]);
         }
         
         //Calculate new values for level, trend and forecast

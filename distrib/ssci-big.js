@@ -1,15 +1,965 @@
-/*! ssci v1.2.5 
+/*! ssci v1.3.0 
  *  JavaScript smoothing, seasonal and regression functions 
- *  2017-08-02 
+ *  2018-10-28 
  *  License: MIT 
- *  Copyright (C) 2017 Simon West
+ *  Copyright (C) 2018 Simon West
  */
 
-var ssci = (function(){ 
+/*
+ *  big.js v5.2.2
+ *  A small, fast, easy-to-use library for arbitrary-precision decimal arithmetic.
+ *  Copyright (c) 2018 Michael Mclaughlin <M8ch88l@gmail.com>
+ *  https://github.com/MikeMcl/big.js/LICENCE
+ */
+;(function (GLOBAL) {
   'use strict';
+  var Big,
 
+
+/************************************** EDITABLE DEFAULTS *****************************************/
+
+
+    // The default values below must be integers within the stated ranges.
+
+    /*
+     * The maximum number of decimal places (DP) of the results of operations involving division:
+     * div and sqrt, and pow with negative exponents.
+     */
+    DP = 120,          // 0 to MAX_DP
+
+    /*
+     * The rounding mode (RM) used when rounding to the above decimal places.
+     *
+     *  0  Towards zero (i.e. truncate, no rounding).       (ROUND_DOWN)
+     *  1  To nearest neighbour. If equidistant, round up.  (ROUND_HALF_UP)
+     *  2  To nearest neighbour. If equidistant, to even.   (ROUND_HALF_EVEN)
+     *  3  Away from zero.                                  (ROUND_UP)
+     */
+    RM = 1,             // 0, 1, 2 or 3
+
+    // The maximum value of DP and Big.DP.
+    MAX_DP = 1E6,       // 0 to 1000000
+
+    // The maximum magnitude of the exponent argument to the pow method.
+    MAX_POWER = 1E6,    // 1 to 1000000
+
+    /*
+     * The negative exponent (NE) at and beneath which toString returns exponential notation.
+     * (JavaScript numbers: -7)
+     * -1000000 is the minimum recommended exponent value of a Big.
+     */
+    NE = -7,            // 0 to -1000000
+
+    /*
+     * The positive exponent (PE) at and above which toString returns exponential notation.
+     * (JavaScript numbers: 21)
+     * 1000000 is the maximum recommended exponent value of a Big.
+     * (This limit is not enforced or checked.)
+     */
+    PE = 21,            // 0 to 1000000
+
+
+/**************************************************************************************************/
+
+
+    // Error messages.
+    NAME = '[big.js] ',
+    INVALID = NAME + 'Invalid ',
+    INVALID_DP = INVALID + 'decimal places',
+    INVALID_RM = INVALID + 'rounding mode',
+    DIV_BY_ZERO = NAME + 'Division by zero',
+
+    // The shared prototype object.
+    P = {},
+    UNDEFINED = void 0,
+    NUMERIC = /^-?(\d+(\.\d*)?|\.\d+)(e[+-]?\d+)?$/i;
+
+
+  /*
+   * Create and return a Big constructor.
+   *
+   */
+  function _Big_() {
+
+    /*
+     * The Big constructor and exported function.
+     * Create and return a new instance of a Big number object.
+     *
+     * n {number|string|Big} A numeric value.
+     */
+    function Big(n) {
+      var x = this;
+
+      // Enable constructor usage without new.
+      if (!(x instanceof Big)) return n === UNDEFINED ? _Big_() : new Big(n);
+
+      // Duplicate.
+      if (n instanceof Big) {
+        x.s = n.s;
+        x.e = n.e;
+        x.c = n.c.slice();
+      } else {
+        parse(x, n);
+      }
+
+      /*
+       * Retain a reference to this Big constructor, and shadow Big.prototype.constructor which
+       * points to Object.
+       */
+      x.constructor = Big;
+    }
+
+    Big.prototype = P;
+    Big.DP = DP;
+    Big.RM = RM;
+    Big.NE = NE;
+    Big.PE = PE;
+    Big.version = '5.2.2';
+
+    return Big;
+  }
+
+
+  /*
+   * Parse the number or string value passed to a Big constructor.
+   *
+   * x {Big} A Big number instance.
+   * n {number|string} A numeric value.
+   */
+  function parse(x, n) {
+    var e, i, nl;
+
+    // Minus zero?
+    if (n === 0 && 1 / n < 0) n = '-0';
+    else if (!NUMERIC.test(n += '')) throw Error(INVALID + 'number');
+
+    // Determine sign.
+    x.s = n.charAt(0) == '-' ? (n = n.slice(1), -1) : 1;
+
+    // Decimal point?
+    if ((e = n.indexOf('.')) > -1) n = n.replace('.', '');
+
+    // Exponential form?
+    if ((i = n.search(/e/i)) > 0) {
+
+      // Determine exponent.
+      if (e < 0) e = i;
+      e += +n.slice(i + 1);
+      n = n.substring(0, i);
+    } else if (e < 0) {
+
+      // Integer.
+      e = n.length;
+    }
+
+    nl = n.length;
+
+    // Determine leading zeros.
+    for (i = 0; i < nl && n.charAt(i) == '0';) ++i;
+
+    if (i == nl) {
+
+      // Zero.
+      x.c = [x.e = 0];
+    } else {
+
+      // Determine trailing zeros.
+      for (; nl > 0 && n.charAt(--nl) == '0';);
+      x.e = e - i - 1;
+      x.c = [];
+
+      // Convert string to array of digits without leading/trailing zeros.
+      for (e = 0; i <= nl;) x.c[e++] = +n.charAt(i++);
+    }
+
+    return x;
+  }
+
+
+  /*
+   * Round Big x to a maximum of dp decimal places using rounding mode rm.
+   * Called by stringify, P.div, P.round and P.sqrt.
+   *
+   * x {Big} The Big to round.
+   * dp {number} Integer, 0 to MAX_DP inclusive.
+   * rm {number} 0, 1, 2 or 3 (DOWN, HALF_UP, HALF_EVEN, UP)
+   * [more] {boolean} Whether the result of division was truncated.
+   */
+  function round(x, dp, rm, more) {
+    var xc = x.c,
+      i = x.e + dp + 1;
+
+    if (i < xc.length) {
+      if (rm === 1) {
+
+        // xc[i] is the digit after the digit that may be rounded up.
+        more = xc[i] >= 5;
+      } else if (rm === 2) {
+        more = xc[i] > 5 || xc[i] == 5 &&
+          (more || i < 0 || xc[i + 1] !== UNDEFINED || xc[i - 1] & 1);
+      } else if (rm === 3) {
+        more = more || !!xc[0];
+      } else {
+        more = false;
+        if (rm !== 0) throw Error(INVALID_RM);
+      }
+
+      if (i < 1) {
+        xc.length = 1;
+
+        if (more) {
+
+          // 1, 0.1, 0.01, 0.001, 0.0001 etc.
+          x.e = -dp;
+          xc[0] = 1;
+        } else {
+
+          // Zero.
+          xc[0] = x.e = 0;
+        }
+      } else {
+
+        // Remove any digits after the required decimal places.
+        xc.length = i--;
+
+        // Round up?
+        if (more) {
+
+          // Rounding up may mean the previous digit has to be rounded up.
+          for (; ++xc[i] > 9;) {
+            xc[i] = 0;
+            if (!i--) {
+              ++x.e;
+              xc.unshift(1);
+            }
+          }
+        }
+
+        // Remove trailing zeros.
+        for (i = xc.length; !xc[--i];) xc.pop();
+      }
+    } else if (rm < 0 || rm > 3 || rm !== ~~rm) {
+      throw Error(INVALID_RM);
+    }
+
+    return x;
+  }
+
+
+  /*
+   * Return a string representing the value of Big x in normal or exponential notation.
+   * Handles P.toExponential, P.toFixed, P.toJSON, P.toPrecision, P.toString and P.valueOf.
+   *
+   * x {Big}
+   * id? {number} Caller id.
+   *         1 toExponential
+   *         2 toFixed
+   *         3 toPrecision
+   *         4 valueOf
+   * n? {number|undefined} Caller's argument.
+   * k? {number|undefined}
+   */
+  function stringify(x, id, n, k) {
+    var e, s,
+      Big = x.constructor,
+      z = !x.c[0];
+
+    if (n !== UNDEFINED) {
+      if (n !== ~~n || n < (id == 3) || n > MAX_DP) {
+        throw Error(id == 3 ? INVALID + 'precision' : INVALID_DP);
+      }
+
+      x = new Big(x);
+
+      // The index of the digit that may be rounded up.
+      n = k - x.e;
+
+      // Round?
+      if (x.c.length > ++k) round(x, n, Big.RM);
+
+      // toFixed: recalculate k as x.e may have changed if value rounded up.
+      if (id == 2) k = x.e + n + 1;
+
+      // Append zeros?
+      for (; x.c.length < k;) x.c.push(0);
+    }
+
+    e = x.e;
+    s = x.c.join('');
+    n = s.length;
+
+    // Exponential notation?
+    if (id != 2 && (id == 1 || id == 3 && k <= e || e <= Big.NE || e >= Big.PE)) {
+      s = s.charAt(0) + (n > 1 ? '.' + s.slice(1) : '') + (e < 0 ? 'e' : 'e+') + e;
+
+    // Normal notation.
+    } else if (e < 0) {
+      for (; ++e;) s = '0' + s;
+      s = '0.' + s;
+    } else if (e > 0) {
+      if (++e > n) for (e -= n; e--;) s += '0';
+      else if (e < n) s = s.slice(0, e) + '.' + s.slice(e);
+    } else if (n > 1) {
+      s = s.charAt(0) + '.' + s.slice(1);
+    }
+
+    return x.s < 0 && (!z || id == 4) ? '-' + s : s;
+  }
+
+
+  // Prototype/instance methods
+
+
+  /*
+   * Return a new Big whose value is the absolute value of this Big.
+   */
+  P.abs = function () {
+    var x = new this.constructor(this);
+    x.s = 1;
+    return x;
+  };
+
+
+  /*
+   * Return 1 if the value of this Big is greater than the value of Big y,
+   *       -1 if the value of this Big is less than the value of Big y, or
+   *        0 if they have the same value.
+  */
+  P.cmp = function (y) {
+    var isneg,
+      x = this,
+      xc = x.c,
+      yc = (y = new x.constructor(y)).c,
+      i = x.s,
+      j = y.s,
+      k = x.e,
+      l = y.e;
+
+    // Either zero?
+    if (!xc[0] || !yc[0]) return !xc[0] ? !yc[0] ? 0 : -j : i;
+
+    // Signs differ?
+    if (i != j) return i;
+
+    isneg = i < 0;
+
+    // Compare exponents.
+    if (k != l) return k > l ^ isneg ? 1 : -1;
+
+    j = (k = xc.length) < (l = yc.length) ? k : l;
+
+    // Compare digit by digit.
+    for (i = -1; ++i < j;) {
+      if (xc[i] != yc[i]) return xc[i] > yc[i] ^ isneg ? 1 : -1;
+    }
+
+    // Compare lengths.
+    return k == l ? 0 : k > l ^ isneg ? 1 : -1;
+  };
+
+
+  /*
+   * Return a new Big whose value is the value of this Big divided by the value of Big y, rounded,
+   * if necessary, to a maximum of Big.DP decimal places using rounding mode Big.RM.
+   */
+  P.div = function (y) {
+    var x = this,
+      Big = x.constructor,
+      a = x.c,                  // dividend
+      b = (y = new Big(y)).c,   // divisor
+      k = x.s == y.s ? 1 : -1,
+      dp = Big.DP;
+
+    if (dp !== ~~dp || dp < 0 || dp > MAX_DP) throw Error(INVALID_DP);
+
+    // Divisor is zero?
+    if (!b[0]) throw Error(DIV_BY_ZERO);
+
+    // Dividend is 0? Return +-0.
+    if (!a[0]) return new Big(k * 0);
+
+    var bl, bt, n, cmp, ri,
+      bz = b.slice(),
+      ai = bl = b.length,
+      al = a.length,
+      r = a.slice(0, bl),   // remainder
+      rl = r.length,
+      q = y,                // quotient
+      qc = q.c = [],
+      qi = 0,
+      d = dp + (q.e = x.e - y.e) + 1;    // number of digits of the result
+
+    q.s = k;
+    k = d < 0 ? 0 : d;
+
+    // Create version of divisor with leading zero.
+    bz.unshift(0);
+
+    // Add zeros to make remainder as long as divisor.
+    for (; rl++ < bl;) r.push(0);
+
+    do {
+
+      // n is how many times the divisor goes into current remainder.
+      for (n = 0; n < 10; n++) {
+
+        // Compare divisor and remainder.
+        if (bl != (rl = r.length)) {
+          cmp = bl > rl ? 1 : -1;
+        } else {
+          for (ri = -1, cmp = 0; ++ri < bl;) {
+            if (b[ri] != r[ri]) {
+              cmp = b[ri] > r[ri] ? 1 : -1;
+              break;
+            }
+          }
+        }
+
+        // If divisor < remainder, subtract divisor from remainder.
+        if (cmp < 0) {
+
+          // Remainder can't be more than 1 digit longer than divisor.
+          // Equalise lengths using divisor with extra leading zero?
+          for (bt = rl == bl ? b : bz; rl;) {
+            if (r[--rl] < bt[rl]) {
+              ri = rl;
+              for (; ri && !r[--ri];) r[ri] = 9;
+              --r[ri];
+              r[rl] += 10;
+            }
+            r[rl] -= bt[rl];
+          }
+
+          for (; !r[0];) r.shift();
+        } else {
+          break;
+        }
+      }
+
+      // Add the digit n to the result array.
+      qc[qi++] = cmp ? n : ++n;
+
+      // Update the remainder.
+      if (r[0] && cmp) r[rl] = a[ai] || 0;
+      else r = [a[ai]];
+
+    } while ((ai++ < al || r[0] !== UNDEFINED) && k--);
+
+    // Leading zero? Do not remove if result is simply zero (qi == 1).
+    if (!qc[0] && qi != 1) {
+
+      // There can't be more than one zero.
+      qc.shift();
+      q.e--;
+    }
+
+    // Round?
+    if (qi > d) round(q, dp, Big.RM, r[0] !== UNDEFINED);
+
+    return q;
+  };
+
+
+  /*
+   * Return true if the value of this Big is equal to the value of Big y, otherwise return false.
+   */
+  P.eq = function (y) {
+    return !this.cmp(y);
+  };
+
+
+  /*
+   * Return true if the value of this Big is greater than the value of Big y, otherwise return
+   * false.
+   */
+  P.gt = function (y) {
+    return this.cmp(y) > 0;
+  };
+
+
+  /*
+   * Return true if the value of this Big is greater than or equal to the value of Big y, otherwise
+   * return false.
+   */
+  P.gte = function (y) {
+    return this.cmp(y) > -1;
+  };
+
+
+  /*
+   * Return true if the value of this Big is less than the value of Big y, otherwise return false.
+   */
+  P.lt = function (y) {
+    return this.cmp(y) < 0;
+  };
+
+
+  /*
+   * Return true if the value of this Big is less than or equal to the value of Big y, otherwise
+   * return false.
+   */
+  P.lte = function (y) {
+    return this.cmp(y) < 1;
+  };
+
+
+  /*
+   * Return a new Big whose value is the value of this Big minus the value of Big y.
+   */
+  P.minus = P.sub = function (y) {
+    var i, j, t, xlty,
+      x = this,
+      Big = x.constructor,
+      a = x.s,
+      b = (y = new Big(y)).s;
+
+    // Signs differ?
+    if (a != b) {
+      y.s = -b;
+      return x.plus(y);
+    }
+
+    var xc = x.c.slice(),
+      xe = x.e,
+      yc = y.c,
+      ye = y.e;
+
+    // Either zero?
+    if (!xc[0] || !yc[0]) {
+
+      // y is non-zero? x is non-zero? Or both are zero.
+      return yc[0] ? (y.s = -b, y) : new Big(xc[0] ? x : 0);
+    }
+
+    // Determine which is the bigger number. Prepend zeros to equalise exponents.
+    if (a = xe - ye) {
+
+      if (xlty = a < 0) {
+        a = -a;
+        t = xc;
+      } else {
+        ye = xe;
+        t = yc;
+      }
+
+      t.reverse();
+      for (b = a; b--;) t.push(0);
+      t.reverse();
+    } else {
+
+      // Exponents equal. Check digit by digit.
+      j = ((xlty = xc.length < yc.length) ? xc : yc).length;
+
+      for (a = b = 0; b < j; b++) {
+        if (xc[b] != yc[b]) {
+          xlty = xc[b] < yc[b];
+          break;
+        }
+      }
+    }
+
+    // x < y? Point xc to the array of the bigger number.
+    if (xlty) {
+      t = xc;
+      xc = yc;
+      yc = t;
+      y.s = -y.s;
+    }
+
+    /*
+     * Append zeros to xc if shorter. No need to add zeros to yc if shorter as subtraction only
+     * needs to start at yc.length.
+     */
+    if ((b = (j = yc.length) - (i = xc.length)) > 0) for (; b--;) xc[i++] = 0;
+
+    // Subtract yc from xc.
+    for (b = i; j > a;) {
+      if (xc[--j] < yc[j]) {
+        for (i = j; i && !xc[--i];) xc[i] = 9;
+        --xc[i];
+        xc[j] += 10;
+      }
+
+      xc[j] -= yc[j];
+    }
+
+    // Remove trailing zeros.
+    for (; xc[--b] === 0;) xc.pop();
+
+    // Remove leading zeros and adjust exponent accordingly.
+    for (; xc[0] === 0;) {
+      xc.shift();
+      --ye;
+    }
+
+    if (!xc[0]) {
+
+      // n - n = +0
+      y.s = 1;
+
+      // Result must be zero.
+      xc = [ye = 0];
+    }
+
+    y.c = xc;
+    y.e = ye;
+
+    return y;
+  };
+
+
+  /*
+   * Return a new Big whose value is the value of this Big modulo the value of Big y.
+   */
+  P.mod = function (y) {
+    var ygtx,
+      x = this,
+      Big = x.constructor,
+      a = x.s,
+      b = (y = new Big(y)).s;
+
+    if (!y.c[0]) throw Error(DIV_BY_ZERO);
+
+    x.s = y.s = 1;
+    ygtx = y.cmp(x) == 1;
+    x.s = a;
+    y.s = b;
+
+    if (ygtx) return new Big(x);
+
+    a = Big.DP;
+    b = Big.RM;
+    Big.DP = Big.RM = 0;
+    x = x.div(y);
+    Big.DP = a;
+    Big.RM = b;
+
+    return this.minus(x.times(y));
+  };
+
+
+  /*
+   * Return a new Big whose value is the value of this Big plus the value of Big y.
+   */
+  P.plus = P.add = function (y) {
+    var t,
+      x = this,
+      Big = x.constructor,
+      a = x.s,
+      b = (y = new Big(y)).s;
+
+    // Signs differ?
+    if (a != b) {
+      y.s = -b;
+      return x.minus(y);
+    }
+
+    var xe = x.e,
+      xc = x.c,
+      ye = y.e,
+      yc = y.c;
+
+    // Either zero? y is non-zero? x is non-zero? Or both are zero.
+    if (!xc[0] || !yc[0]) return yc[0] ? y : new Big(xc[0] ? x : a * 0);
+
+    xc = xc.slice();
+
+    // Prepend zeros to equalise exponents.
+    // Note: reverse faster than unshifts.
+    if (a = xe - ye) {
+      if (a > 0) {
+        ye = xe;
+        t = yc;
+      } else {
+        a = -a;
+        t = xc;
+      }
+
+      t.reverse();
+      for (; a--;) t.push(0);
+      t.reverse();
+    }
+
+    // Point xc to the longer array.
+    if (xc.length - yc.length < 0) {
+      t = yc;
+      yc = xc;
+      xc = t;
+    }
+
+    a = yc.length;
+
+    // Only start adding at yc.length - 1 as the further digits of xc can be left as they are.
+    for (b = 0; a; xc[a] %= 10) b = (xc[--a] = xc[a] + yc[a] + b) / 10 | 0;
+
+    // No need to check for zero, as +x + +y != 0 && -x + -y != 0
+
+    if (b) {
+      xc.unshift(b);
+      ++ye;
+    }
+
+    // Remove trailing zeros.
+    for (a = xc.length; xc[--a] === 0;) xc.pop();
+
+    y.c = xc;
+    y.e = ye;
+
+    return y;
+  };
+
+
+  /*
+   * Return a Big whose value is the value of this Big raised to the power n.
+   * If n is negative, round to a maximum of Big.DP decimal places using rounding
+   * mode Big.RM.
+   *
+   * n {number} Integer, -MAX_POWER to MAX_POWER inclusive.
+   */
+  P.pow = function (n) {
+    var x = this,
+      one = new x.constructor(1),
+      y = one,
+      isneg = n < 0;
+
+    if (n !== ~~n || n < -MAX_POWER || n > MAX_POWER) throw Error(INVALID + 'exponent');
+    if (isneg) n = -n;
+
+    for (;;) {
+      if (n & 1) y = y.times(x);
+      n >>= 1;
+      if (!n) break;
+      x = x.times(x);
+    }
+
+    return isneg ? one.div(y) : y;
+  };
+
+
+  /*
+   * Return a new Big whose value is the value of this Big rounded using rounding mode rm
+   * to a maximum of dp decimal places, or, if dp is negative, to an integer which is a
+   * multiple of 10**-dp.
+   * If dp is not specified, round to 0 decimal places.
+   * If rm is not specified, use Big.RM.
+   *
+   * dp? {number} Integer, -MAX_DP to MAX_DP inclusive.
+   * rm? 0, 1, 2 or 3 (ROUND_DOWN, ROUND_HALF_UP, ROUND_HALF_EVEN, ROUND_UP)
+   */
+  P.round = function (dp, rm) {
+    var Big = this.constructor;
+    if (dp === UNDEFINED) dp = 0;
+    else if (dp !== ~~dp || dp < -MAX_DP || dp > MAX_DP) throw Error(INVALID_DP);
+    return round(new Big(this), dp, rm === UNDEFINED ? Big.RM : rm);
+  };
+
+
+  /*
+   * Return a new Big whose value is the square root of the value of this Big, rounded, if
+   * necessary, to a maximum of Big.DP decimal places using rounding mode Big.RM.
+   */
+  P.sqrt = function () {
+    var r, c, t,
+      x = this,
+      Big = x.constructor,
+      s = x.s,
+      e = x.e,
+      half = new Big(0.5);
+
+    // Zero?
+    if (!x.c[0]) return new Big(x);
+
+    // Negative?
+    if (s < 0) throw Error(NAME + 'No square root');
+
+    // Estimate.
+    s = Math.sqrt(x + '');
+
+    // Math.sqrt underflow/overflow?
+    // Re-estimate: pass x coefficient to Math.sqrt as integer, then adjust the result exponent.
+    if (s === 0 || s === 1 / 0) {
+      c = x.c.join('');
+      if (!(c.length + e & 1)) c += '0';
+      s = Math.sqrt(c);
+      e = ((e + 1) / 2 | 0) - (e < 0 || e & 1);
+      r = new Big((s == 1 / 0 ? '1e' : (s = s.toExponential()).slice(0, s.indexOf('e') + 1)) + e);
+    } else {
+      r = new Big(s);
+    }
+
+    e = r.e + (Big.DP += 4);
+
+    // Newton-Raphson iteration.
+    do {
+      t = r;
+      r = half.times(t.plus(x.div(t)));
+    } while (t.c.slice(0, e).join('') !== r.c.slice(0, e).join(''));
+
+    return round(r, Big.DP -= 4, Big.RM);
+  };
+
+
+  /*
+   * Return a new Big whose value is the value of this Big times the value of Big y.
+   */
+  P.times = P.mul = function (y) {
+    var c,
+      x = this,
+      Big = x.constructor,
+      xc = x.c,
+      yc = (y = new Big(y)).c,
+      a = xc.length,
+      b = yc.length,
+      i = x.e,
+      j = y.e;
+
+    // Determine sign of result.
+    y.s = x.s == y.s ? 1 : -1;
+
+    // Return signed 0 if either 0.
+    if (!xc[0] || !yc[0]) return new Big(y.s * 0);
+
+    // Initialise exponent of result as x.e + y.e.
+    y.e = i + j;
+
+    // If array xc has fewer digits than yc, swap xc and yc, and lengths.
+    if (a < b) {
+      c = xc;
+      xc = yc;
+      yc = c;
+      j = a;
+      a = b;
+      b = j;
+    }
+
+    // Initialise coefficient array of result with zeros.
+    for (c = new Array(j = a + b); j--;) c[j] = 0;
+
+    // Multiply.
+
+    // i is initially xc.length.
+    for (i = b; i--;) {
+      b = 0;
+
+      // a is yc.length.
+      for (j = a + i; j > i;) {
+
+        // Current sum of products at this digit position, plus carry.
+        b = c[j] + yc[i] * xc[j - i - 1] + b;
+        c[j--] = b % 10;
+
+        // carry
+        b = b / 10 | 0;
+      }
+
+      c[j] = (c[j] + b) % 10;
+    }
+
+    // Increment result exponent if there is a final carry, otherwise remove leading zero.
+    if (b) ++y.e;
+    else c.shift();
+
+    // Remove trailing zeros.
+    for (i = c.length; !c[--i];) c.pop();
+    y.c = c;
+
+    return y;
+  };
+
+
+  /*
+   * Return a string representing the value of this Big in exponential notation to dp fixed decimal
+   * places and rounded using Big.RM.
+   *
+   * dp? {number} Integer, 0 to MAX_DP inclusive.
+   */
+  P.toExponential = function (dp) {
+    return stringify(this, 1, dp, dp);
+  };
+
+
+  /*
+   * Return a string representing the value of this Big in normal notation to dp fixed decimal
+   * places and rounded using Big.RM.
+   *
+   * dp? {number} Integer, 0 to MAX_DP inclusive.
+   *
+   * (-0).toFixed(0) is '0', but (-0.1).toFixed(0) is '-0'.
+   * (-0).toFixed(1) is '0.0', but (-0.01).toFixed(1) is '-0.0'.
+   */
+  P.toFixed = function (dp) {
+    return stringify(this, 2, dp, this.e + dp);
+  };
+
+
+  /*
+   * Return a string representing the value of this Big rounded to sd significant digits using
+   * Big.RM. Use exponential notation if sd is less than the number of digits necessary to represent
+   * the integer part of the value in normal notation.
+   *
+   * sd {number} Integer, 1 to MAX_DP inclusive.
+   */
+  P.toPrecision = function (sd) {
+    return stringify(this, 3, sd, sd - 1);
+  };
+
+
+  /*
+   * Return a string representing the value of this Big.
+   * Return exponential notation if this Big has a positive exponent equal to or greater than
+   * Big.PE, or a negative exponent equal to or less than Big.NE.
+   * Omit the sign for negative zero.
+   */
+  P.toString = function () {
+    return stringify(this);
+  };
+
+
+  /*
+   * Return a string representing the value of this Big.
+   * Return exponential notation if this Big has a positive exponent equal to or greater than
+   * Big.PE, or a negative exponent equal to or less than Big.NE.
+   * Include the sign for negative zero.
+   */
+  P.valueOf = P.toJSON = function () {
+    return stringify(this, 4);
+  };
+
+
+  // Export
+
+
+  Big = _Big_();
+
+  Big['default'] = Big.Big = Big;
+
+  //AMD.
+  if (typeof define === 'function' && define.amd) {
+    define(function () { return Big; });
+
+  // Node and other CommonJS-like environments that support module.exports.
+  } else if (typeof module !== 'undefined' && module.exports) {
+    module.exports = Big;
+
+  //Browser.
+  } else {
+    GLOBAL.Big = Big;
+  }
+})(this);
+
+/*! ssci v1.3.0 
+ *  JavaScript smoothing, seasonal and regression functions 
+ *  2018-10-28 
+ *  License: MIT 
+ *  Copyright (C) 2018 Simon West
+ */
+
+
+
+var ssci = (function(){
+  'use strict';
+  
 //This library requires big.js - https://github.com/MikeMcl/big.js/ - used in regPolyBig, determinantBig and smoothQuadraticBig
-//var Big = require('./big.js');
 
 var ssci = ssci || {};
 ssci.smooth = {};
@@ -17,13 +967,11 @@ ssci.season = {};
 ssci.reg    = {};
 ssci.fore   = {};
 ssci.ts     = {};
-ssci.mr     = {};
 
 /**
- * Exponential smoothing
- * @param {array} dataArray - an array of points
- * @param {number} factor - factor to smooth by
- * @return {object} Object containing the forecast points, the residuals, the sum of squares of the residuals and the factor
+ * Exponential smoothing - smooth a series of points
+ * Points passed in via the .data() function
+ * Calculates the forecast points, the residuals, the sum of squares of the residuals and the factor
  */
 ssci.fore.expon = function(){
     var data = [];
@@ -113,6 +1061,199 @@ ssci.fore.expon = function(){
     };
     retVar.sumSquares = function(){
         return sumsq;
+    };
+    
+    return retVar;
+};
+
+/**
+ * Holt's Exponential Smoothing
+ * @param {array} dataArray - an array of points
+ * @param {number} factor - factor to smooth by
+ * @param {number} trend - factor for the trend smoothing
+ * @return {object} Object containing the forecast points, the residuals, the sum of squares of the residuals and the factor
+ */
+ssci.fore.holt = function(){
+    var data = [];
+    var dataArray = [];
+    var numPoints = 0;
+    var output = [];
+    var resids = [];
+    var sumsq  = 0;
+    var factor = 0.3;
+    var trend  = 0.3;
+    var x_conv = function(d){ return d[0]; };
+    var y_conv = function(d){ return d[1]; };
+    var l=[];
+    var t=[];
+    var funcs_T = {
+        '1': t1,
+        '2': t2,
+        '3': t3,
+        '4': t4
+    };
+    var funcT = '1';    //Function to use to calculate the starting value of 
+
+    /**
+     * Initial average difference between first three pairs of points
+     */
+    function t1(){
+        return (1/3)*(dataArray[1][1]-dataArray[0][1])+(dataArray[2][1]-dataArray[1][1])+(dataArray[3][1]-dataArray[2][1]);
+    }
+    /**
+     * Calculate trend for entire series and multiply by average distance between points
+     */
+    function t2(){
+        return ssci.reg.polyBig(dataArray,1).constants[1] * ((dataArray[numPoints-1][0]-dataArray[0][0])/(numPoints-1));
+    }
+    /**
+     * Trend for first to second point
+     */
+    function t3(){
+        return dataArray[1][1]-dataArray[0][1];
+    }
+    /**
+     * Trend between first and last point
+     */
+    function t4(){
+        return (dataArray[numPoints-1][1]-dataArray[0][1])/(numPoints-1);
+    }
+    
+    function retVar(){
+        var i;
+        
+        //Clear output array - needed to stop output growing when function called repeatedly
+		output = [];
+        
+        //Create array of data using accessors
+        dataArray = data.map( function(d){
+            return [x_conv(d), y_conv(d)];
+        });
+        numPoints = dataArray.length;
+        
+        //Push first value to dataArray
+        output.push(dataArray[0]);
+        
+        //Generate starting value for l - first value of dataArray
+        if(l.length===0){
+            l.push(dataArray[0][1]);
+        }
+        
+        //Generate starting value for t - initial average difference between first three pairs of points
+        if(t.length===0){
+            t.push(funcs_T[funcT]);
+        }
+        
+        //Calculate new values for level, trend and forecast
+        for(i=1;i<(numPoints);i++){
+            l.push(factor*dataArray[i][1]+(1-factor)*(l[i-1]+t[i-1]));
+            t.push(trend*(l[i]-l[i-1])+(1-trend)*t[i-1]);
+            //Create forecasts - current forecast is based on last periods estimates of l(evel) and t(rend)
+            output.push([dataArray[i][0], l[i-1]+t[i-1]]);
+        }
+        
+        //Calculate residuals
+        sumsq=0;
+        for(i=1;i<numPoints;i++){
+            resids.push(dataArray[i][1]-output[i][1]);
+            sumsq += Math.pow(dataArray[i][1]-output[i][1],2);
+        }
+        
+    }
+    
+    retVar.initialLevel = function(value){
+        if(!arguments.length){ return l[0]; }
+        l = [];
+        
+        l.push(value);
+        
+        return retVar;
+    };
+    
+    retVar.initialTrend = function(value){
+        if(!arguments.length){ return t[0]; }
+        t = [];
+        
+        t.push(value);
+        
+        return retVar;
+    };
+    
+    retVar.x = function(value){
+        if(!arguments.length){ return x_conv; }
+        x_conv = value;
+        return retVar;
+    };
+    
+    retVar.y = function(value){
+        if(!arguments.length){ return y_conv; }
+        y_conv = value;
+        return retVar;
+    };
+    
+    retVar.data = function(value){
+        data = value;
+        return retVar;
+    };
+    
+    retVar.factor = function(value){
+        if(!arguments.length){ return factor; }
+        
+        //Check that factor is in range and of the right type
+        if(typeof value !== 'number'){
+            console.log('Factor appears to not be a number - changed to 0.3');
+            factor=0.3;
+            return retVar;
+        }
+        if(value>1 || value<0){
+            console.log('Factor >1 or <0 - changed to 0.3');
+            factor=0.3;
+            return retVar;
+        }
+        
+        factor = value;
+        
+        return retVar;
+    };
+    
+    retVar.output = function(){
+        return output;
+    };
+    retVar.residuals = function(){
+        return resids;
+    };
+    retVar.sumSquares = function(){
+        return sumsq;
+    };
+    
+    retVar.trend = function(value){
+        if(!arguments.length){ return trend; }
+        
+        //Check that trend factor is in range and of the right type
+        if(typeof value !== 'number'){
+            console.log('Trend factor appears to not be a number - changed to 0.3');
+            trend=0.3;
+            return retVar;
+        }
+        if(value>1 || value<0){
+            console.log('Trend >1 or <0 - changed to 0.3');
+            trend=0.3;
+            return retVar;
+        }
+    
+        trend = value;
+    
+        return retVar;
+    };
+    
+    retVar.forecast = function(d){
+        //Check that d is a number
+        if(typeof d !== 'number'){
+            throw new Error('Input is not a number');
+        }
+        //d=1 means one unit of time ahead. If the data is monthly, then d is in months
+        var temp = l[l.length-1]+d*t[t.length-1];
+        return temp;
     };
     
     return retVar;
@@ -378,345 +1519,6 @@ ssci.fore.holtWinter = function(){
 };
 
 /**
- * Holt's Exponential Smoothing
- * @param {array} dataArray - an array of points
- * @param {number} factor - factor to smooth by
- * @param {number} trend - factor for the trend smoothing
- * @return {object} Object containing the forecast points, the residuals, the sum of squares of the residuals and the factor
- */
-ssci.fore.holt = function(){
-    var data = [];
-    var dataArray = [];
-    var numPoints = 0;
-    var output = [];
-    var resids = [];
-    var sumsq  = 0;
-    var factor = 0.3;
-    var trend  = 0.3;
-    var x_conv = function(d){ return d[0]; };
-    var y_conv = function(d){ return d[1]; };
-    var l=[];
-    var t=[];
-    
-    function retVar(){
-        var i;
-        
-        //Clear output array - needed to stop output growing when function called repeatedly
-		output = [];
-        
-        //Create array of data using accessors
-        dataArray = data.map( function(d){
-            return [x_conv(d), y_conv(d)];
-        });
-        numPoints = dataArray.length;
-        
-        //Push first value to dataArray
-        output.push(dataArray[0]);
-        
-        //Generate starting value for l - first value of dataArray
-        if(l.length===0){
-            l.push(dataArray[0][1]);
-        }
-        
-        //Generate starting value for t - initial average difference between first three pairs of points
-        if(t.length===0){
-            t.push((1/3)*(dataArray[1][1]-dataArray[0][1])+(dataArray[2][1]-dataArray[1][1])+(dataArray[3][1]-dataArray[2][1]));
-            
-            //Alternative 1 - calculate trend for entire series and multiply by average distance between points
-            //t.push(ssci.reg.polyBig(dataArray,1).constants[1] * ((dataArray[numPoints-1][0]-dataArray[0][0])/(numPoints-1)));
-        
-            //Alternative 2 - trend for first to second point
-            //t.push(dataArray[1][1]-dataArray[0][1]);
-            
-            //Alternative 3 - trend between first and last point
-            //t.push((dataArray[numPoints-1][1]-dataArray[0][1])/(numPoints-1));
-        }
-        
-        //Calculate new values for level, trend and forecast
-        for(i=1;i<(numPoints);i++){
-            l.push(factor*dataArray[i][1]+(1-factor)*(l[i-1]+t[i-1]));
-            t.push(trend*(l[i]-l[i-1])+(1-trend)*t[i-1]);
-            //Create forecasts - current forecast is based on last periods estimates of l(evel) and t(rend)
-            output.push([dataArray[i][0], l[i-1]+t[i-1]]);
-        }
-        
-        //Calculate residuals
-        sumsq=0;
-        for(i=1;i<numPoints;i++){
-            resids.push(dataArray[i][1]-output[i][1]);
-            sumsq += Math.pow(dataArray[i][1]-output[i][1],2);
-        }
-        
-    }
-    
-    retVar.initialLevel = function(value){
-        if(!arguments.length){ return l[0]; }
-        l = [];
-        
-        l.push(value);
-        
-        return retVar;
-    };
-    
-    retVar.initialTrend = function(value){
-        if(!arguments.length){ return t[0]; }
-        t = [];
-        
-        t.push(value);
-        
-        return retVar;
-    };
-    
-    retVar.x = function(value){
-        if(!arguments.length){ return x_conv; }
-        x_conv = value;
-        return retVar;
-    };
-    
-    retVar.y = function(value){
-        if(!arguments.length){ return y_conv; }
-        y_conv = value;
-        return retVar;
-    };
-    
-    retVar.data = function(value){
-        data = value;
-        return retVar;
-    };
-    
-    retVar.factor = function(value){
-        if(!arguments.length){ return factor; }
-        
-        //Check that factor is in range and of the right type
-        if(typeof value !== 'number'){
-            console.log('Factor appears to not be a number - changed to 0.3');
-            factor=0.3;
-            return retVar;
-        }
-        if(value>1 || value<0){
-            console.log('Factor >1 or <0 - changed to 0.3');
-            factor=0.3;
-            return retVar;
-        }
-        
-        factor = value;
-        
-        return retVar;
-    };
-    
-    retVar.output = function(){
-        return output;
-    };
-    retVar.residuals = function(){
-        return resids;
-    };
-    retVar.sumSquares = function(){
-        return sumsq;
-    };
-    
-    retVar.trend = function(value){
-        if(!arguments.length){ return trend; }
-        
-        //Check that trend factor is in range and of the right type
-        if(typeof value !== 'number'){
-            console.log('Trend factor appears to not be a number - changed to 0.3');
-            trend=0.3;
-            return retVar;
-        }
-        if(value>1 || value<0){
-            console.log('Trend >1 or <0 - changed to 0.3');
-            trend=0.3;
-            return retVar;
-        }
-    
-        trend = value;
-    
-        return retVar;
-    };
-    
-    retVar.forecast = function(d){
-        //Check that d is a number
-        if(typeof d !== 'number'){
-            throw new Error('Input is not a number');
-        }
-        //d=1 means one unit of time ahead. If the data is monthly, then d is in months
-        var temp = l[l.length-1]+d*t[t.length-1];
-        return temp;
-    };
-    
-    return retVar;
-};
-
-/**
- * Function to give the cumulative proportion of the panel who are purchasing on r occasions
- * given m and b, according to the NBD theory of purchasing
- * @param {number} r - Number of occasions that sample buy an item - 0,1,2,3 etc i.e. real integer
- * @param {number} m - Purchase rate of the total sample i.e. occasions/sample size
- * @param {number} b - Proportion of sample who have bought said item - range is 0 to 1
- * @returns {number} cumulative proportion of the sample
- */
-ssci.mr.cnegbin = function(r, m, b){
-    if(arguments.length!==3){
-        throw new Error('Incorrect number of arguments passed');
-    }
-    if(typeof r !== 'number'){
-        throw new Error('r is not a number');
-    }
-    if(typeof m !== 'number'){
-        throw new Error('m is not a number');
-    }
-    if(typeof b !== 'number'){
-        throw new Error('b is not a number');
-    }
-    if(b>1 || b<0){
-        throw new Error('b must be between 0 and 1');
-    }
-    r = Math.round(r);
-    var cnb=0;
-    
-    if (r < 1){
-        cnb = ssci.mr.negbin(0, m, b);
-    } else {
-        cnb = ssci.mr.negbin(r, m, b) + ssci.mr.cnegbin(r-1, m, b);
-    }
-    
-    return cnb;
-    
-};
-/**
- * Calculates the 'a' parameter of the NBD function
- * @param {number} b - Proportion of sample who have bought said item - range is 0 to 1
- * @param {number} m - Purchase rate of the total sample i.e. occasions/sample size
- * @returns {number} the 'a' parameter
- */
-ssci.mr.nbd_a = function(b, m){
-    if(arguments.length!==2){
-        throw new Error('Incorrect number of arguments passed');
-    }
-    if(typeof m !== 'number'){
-        throw new Error('m is not a number');
-    }
-    if(typeof b !== 'number'){
-        throw new Error('b is not a number');
-    }
-    if(b>1 || b<0){
-        throw new Error('b must be between 0 and 1');
-    }
-    
-    //Calculate frequency of purchase for buyers
-    var w = m/b;
-    //Calculate preliminary values
-    var x = -(b * w / Math.log(1 - b));
-    var y = x * Math.log(x) + x - 1;
-    var z = y - (x * Math.log(1 + y) - y) / (x / (y + 1) - 1);
-    var iterations=100;
-    var convergence=1e-15;
-    var n = 0;
-    
-    do {
-        n++;
-        y = z;
-        z = y - (x * Math.log(1 + y) - y) / (x / (y + 1) - 1);
-    } while (n<iterations && Math.abs(y-z)>convergence);
-    
-    return y;
-};
-/**
- * Function to give the proportion of a population who are purchasing on r occasions
- * given m and b, according to the NBD theory of purchasing (Repeat Buying, Ehrenberg - http://www.empgens.com/ArticlesHome/Volume5/RepeatBuying.html)
- * @param {number} r - Number of occasions that sample buy an item - 0,1,2,3 etc i.e. real integer
- * @param {number} m - Purchase rate of the total sample i.e. occasions/sample size
- * @param {number} b - Proportion of sample who have bought said item - range is 0 to 1
- * @returns {number} proportion of the sample
- */
-ssci.mr.negbin = function(r, m, b){
-    if(arguments.length!==3){
-        throw new Error('Incorrect number of arguments passed');
-    }
-    if(typeof r !== 'number'){
-        throw new Error('r is not a number');
-    }
-    if(typeof m !== 'number'){
-        throw new Error('m is not a number');
-    }
-    if(typeof b !== 'number'){
-        throw new Error('b is not a number');
-    }
-    if(b>1 || b<0){
-        throw new Error('b must be between 0 and 1');
-    }
-    r = Math.round(r);
-    
-    //Calculate a
-    var a = ssci.mr.nbd_a(b,m);
-    
-    //Calculate k
-    var k = m/a;
-    
-    //NBD only exists if m>=-ln(p0)
-    if(m>=-Math.log(1-b)){
-        //Calculate p and return
-        return (ssci.gamma(k+r)/(ssci.gamma(r+1)*ssci.gamma(k)))*(Math.pow(a+1,-k))*(Math.pow(a/(a+1),r));
-    } else {
-        return NaN;
-    }
-    
-};
-/**
- * Calculate the determinant of a matrix
- * @param {array} p - an array of arrays denoting a matrix
- * @returns {number} the determinant of the matrix
- */
-ssci.reg.determinant = function(p){
-    //Calculate the determinant of an array
-    var j, t, u;     //integer
-    var upperLim;    //integer
-    var temp;        //double
-    var tempp = [];  //array of doubles
-    
-    upperLim = p.length;
-    j = upperLim - 2;
-    temp = 0;
-    
-    //Initialise temp array - must be a better way
-    for(var i=0;i<=j;i++){
-        var temp2=[];
-        for(var k=0;k<=j;k++){
-            temp2.push(0);
-        }
-        tempp.push(temp2);
-    }
-    
-    for(i = 0;i<upperLim;i++){
-        //Construct array for determinant if j>1
-        t = 0;
-        u = 0;
-        for(var x=0;x<upperLim;x++){
-            for(var y=0;y<upperLim;y++){
-                if(y !== i && x !== j){
-                    tempp[t][u] = p[y][x];
-                }
-                if(y !== i){
-                    t++;
-                }
-            }
-            t = 0;
-            if(x !== j){
-                u++;
-            }
-        }
-        if (j > 0){
-            temp += (Math.pow((-1),(i + j)) * p[i][j] * ssci.reg.determinant(tempp));
-        } else {
-            temp += (Math.pow((-1),(i + j)) * p[i][j] * tempp[0][0]);
-        }
-        
-    }
-
-    return temp;
-
-};
-/**
  * Calculate the determinant of a matrix using Bigs
  * @param {array} p - an array of arrays denoting a matrix
  * @returns {number} the determinant of the matrix
@@ -762,10 +1564,8 @@ ssci.reg.determinantBig = function(p){
             }
         }
         if (j > 0){
-            //temp += (Math.pow((-1),(i + j)) * p[i][j] * this.bDeterminant(tempp));
             temp = temp.plus(p[i][j].times(Math.pow((-1),(i + j))).times(ssci.reg.determinantBig(tempp)));
         } else {
-            //temp += (Math.pow((-1),(i + j)) * p[i][j] * tempp[0][0]);
             temp = temp.plus(p[i][j].times(Math.pow((-1),(i + j))).times(tempp[0][0]));
         }
         
@@ -773,135 +1573,6 @@ ssci.reg.determinantBig = function(p){
 
     return temp;
 
-};
-
-/**
- * Fit a polynomial to the set of points passed to the function i.e. least squares regression
- * @param {array} dataArray - an array of points
- * @param {number} order - the order of the polynomial i.e. 2 for quadratic, 1 for linear etc.
- * @returns {array} an array of points, 'x' coordinate in the first element of the point
- */
-ssci.reg.poly = function(){
-    
-    var output=[];    //Set of points calculated at same x coordinates as dataArray
-    var ms=[];
-    var msdash=[];
-    var ns=[];
-    var con=[];        //Constants of polynomial
-    var detms;
-    var i,j,k;
-    var x_conv = function(d){ return d[0]; };
-    var y_conv = function(d){ return d[1]; };
-    var data = [];
-    var order = 2;
-    
-    function rp(){
-        var dataArray = [];
-        
-        //Clear output array - needed to stop output growing when function called repeatedly
-		output = [];
-        
-        //Create array of data using accessors
-        dataArray = data.map( function(d){
-            return [x_conv(d), y_conv(d)];
-        });
-        
-        //Change order if it is greater than the number of points
-        if(order>(dataArray.length-1)){
-            order=dataArray.length-1;
-            console.log('Order changed to ' + (dataArray.length-1));
-        }
-        
-        //Initialise variables
-        for(i=0;i<(order+1);i++){
-            var temp2=[];
-            var temp3=[];
-            for(k=0;k<(order+1);k++){
-                temp2.push(0);
-                temp3.push(0);
-            }
-            ms.push(temp2);
-            msdash.push(temp3);
-            ns.push(0);
-        }
-        
-        //Set up matrices
-        for(i = 0;i<(order+1);i++){
-            for(j = 0;j<(order+1);j++){
-                for(k = 0;k<dataArray.length;k++){
-                    ms[i][j] += Math.pow(dataArray[k][0], (i+j));
-                }
-            }
-        }
-        
-        for(j = 0;j<(order+1);j++){
-            for(k = 0;k<dataArray.length;k++){
-                ns[j] += Math.pow(dataArray[k][0], j) * dataArray[k][1];
-            }
-        }
-        
-        detms = ssci.reg.determinant(ms);
-        
-        for(i = 0;i<(order+1);i++){
-            //'Set up M'
-            for(j = 0;j<(order+1);j++){
-                for(k = 0;k<(order+1);k++){
-                    if(k === i){
-                        msdash[j][k] = ns[j];
-                    } else {
-                        msdash[j][k] = ms[j][k];
-                    }
-                }
-            }
-            con.push(ssci.reg.determinant(msdash) / detms);
-        }
-        
-        for(k = 0;k<dataArray.length;k++){
-            var temp=0;
-            for(j = 0;j<(order+1);j++){
-                temp+=Math.pow(dataArray[k][0], j)*con[j];
-            }
-            output.push([dataArray[k][0], temp]);
-        }
-    }
-    
-    rp.order = function(value){
-        if(!arguments.length){ return order; }
-        
-        //Check that order is a number
-        if(typeof value!== 'number'){
-            order = 2;
-        }
-        if(value <= 0){
-            order = 2;
-        }
-        order = value;
-        
-        return rp;
-    };
-    
-    rp.output = function(){
-        return output;
-    };
-    
-    rp.x = function(value){
-        if(!arguments.length){ return x_conv; }
-        x_conv = value;
-        return rp;
-    };
-    
-    rp.y = function(value){
-        if(!arguments.length){ return y_conv; }
-        y_conv = value;
-        return rp;
-    };
-    
-    rp.data = function(value){
-        data = value;
-        return rp;
-    };
-    
-    return rp;
 };
 
 /**
@@ -1688,187 +2359,6 @@ ssci.smooth.EWMA = function(){
 };
 
 /** 
- * Take an array of points and returns a set of smoothed points by applying a filter to the data around the central point
- * @param {array} dataArray - an array of points
- * @param {number} filter - an array containing the filter to apply. The filter is a series of weights to apply to the data points. Should be odd and sum to one for the filtered series to sum to the original series.
- * @param {string} removeEnds - if true then removes data that can't be filtered at the start and end of the series. If false applies the filter assymmetrically.
- * @returns {array} - an array with the new points
- */
-ssci.smooth.filterOld = function(){
-    
-    var numPoints = 0;
-    var output = [];
-    var l_width=0;
-    var b=0;
-    var i,j;        //Iterators
-    var x_conv = function(d){ return d[0]; };
-    var y_conv = function(d){ return d[1]; };
-    var data = [];
-    var filter = [];
-    var removeEnds = true;
-    
-    function sm(){
-        var dataArray = [];
-        
-        //Clear output array - needed to stop output growing when function called repeatedly
-		output = [];
-        
-        //Create array of data using accessors
-        dataArray = data.map( function(d){
-            return [x_conv(d), y_conv(d)];
-        });
-        numPoints = dataArray.length;
-        
-        l_width = Math.floor(filter.length/2);
-    
-        //Take care of the start where filtering can't take place
-        if(!removeEnds){
-            for(i=0;i<l_width;i++){
-                b=0;
-                for(j=0;j<2*l_width+1;j++){
-                    if((i+j-l_width)>=0){
-                        b+=dataArray[i+j-l_width][1]*filter[j];
-                    } else {
-                        b+=dataArray[i][1]*filter[j];
-                    }
-                }
-                output.push([dataArray[i][0], b]);
-            }
-        }
-        
-        //Filter the data
-        for(i=l_width;i<numPoints-l_width;i++){
-            b=0;
-            for(j=0;j<2*l_width+1;j++){
-                b+=dataArray[i+j-l_width][1]*filter[j];
-            }
-            
-            output.push([dataArray[i][0], b]);
-        }
-        
-        //Take care of the end where filtering can't take place
-        if(!removeEnds){
-            for(i=numPoints-l_width;i<numPoints;i++){
-                b=0;
-                for(j=0;j<2*l_width+1;j++){
-                    if((i+j-l_width)<numPoints){
-                        b+=dataArray[i+j-l_width][1]*filter[j];
-                    } else {
-                        b+=dataArray[i][1]*filter[j];
-                    }
-                }
-                output.push([dataArray[i][0], b]);
-            }
-        }
-    }
-    
-    sm.output = function(){
-        return output;
-    };
-    
-    sm.x = function(value){
-        if(!arguments.length){ return x_conv; }
-        x_conv = value;
-        return sm;
-    };
-    
-    sm.y = function(value){
-        if(!arguments.length){ return y_conv; }
-        y_conv = value;
-        return sm;
-    };
-    
-    sm.data = function(value){
-        data = value;
-        return sm;
-    };
-    
-    sm.filter = function(value){
-        if(!arguments.length){ return filter; }
-        
-        //Check that the filter is an array and size is odd
-        if(!(typeof value === 'object' && Array.isArray(value))){
-            throw new Error('Filter must be an array');
-        }
-        if(value.length % 2 === 0){
-            throw new Error('Filter must be of an odd size');
-        }
-        if(value.length < 3){
-            throw new Error('Filter size must be greater than 2');
-        }
-        
-        filter = value;
-        
-        return sm;
-    };
-    
-    sm.end = function(value){
-        if(!arguments.length){ return removeEnds; }
-        
-        //Check removeEnds
-        if(typeof removeEnds !== 'boolean'){
-            removeEnds = true;
-        }
-        
-        removeEnds = value;
-        
-        return sm;
-    };
-    
-    sm.gain = function(d){
-        //Create gain function
-        
-        var temp = 0;
-        var g1 = 0;
-        var g2 = 0;
-            
-        for(i=0;i<filter.length;i++){
-            g1 = g1 + filter[i] * Math.cos((i-l_width) * 2 * Math.PI / d);
-            g2 = g2 + filter[i] * Math.sin((i-l_width) * 2 * Math.PI / d);
-        }
-        
-        temp = Math.sqrt(g1*g1 + g2*g2);
-        
-        return temp;
-    };
-    
-    sm.phaseShift = function(d){
-        var g1 = 0;
-        var g2 = 0;
-            
-        for(i=0;i<filter.length;i++){
-            g1 = g1 + filter[i] * Math.cos((i-l_width) * 2 * Math.PI / d);
-            g2 = g2 + filter[i] * Math.sin((i-l_width) * 2 * Math.PI / d);
-        }
-        
-        return pf(g1, g2);
-    };
-
-    function pf(c, s){
-        
-        if( c > 0 ){
-            return Math.atan(s / c);
-        } else if (c < 0 && s >= 0){
-            return Math.atan(s / c) + Math.PI;
-        } else if (c < 0 && s < 0){
-            return Math.atan(s / c) - Math.PI;
-        } else if (c === 0 && s > 0) {
-            return Math.PI / 2;
-        } else if (c === 0 && s < 0) {
-            return -Math.PI / 2;
-        } else if (c === 0 && s === 0) {
-            return 0;
-        } else {
-            return Number.NaN;
-        }
-        
-    }
-
-    return sm;
-    
-};
-
-/** 
  * Take an array of points and returns a set of smoothed points by applying a filter to the data
  */
 ssci.smooth.filter = function(){
@@ -2063,8 +2553,6 @@ ssci.smooth.filter = function(){
      * @param {number} d The period to calculate the phase shift for
      */
     sm.phaseShift = function(d){
-        //
-        
         if(typeof d !== 'number'){ throw new Error('Input must be a number'); }
         
         var g1 = 0;
@@ -2112,7 +2600,6 @@ ssci.smooth.filter = function(){
      * Set or get the function to calculate the weights for the end of the data series if 'end' is false
      */
     sm.right = function(value){
-        //
         if(!arguments.length){ return r_filt; }
         r_filt = value;
         return sm;
@@ -2410,128 +2897,6 @@ ssci.smooth.kernel2 = function(){
 	};
     
     return sk;
-};
-
-/** 
- * Take an array of points and returns a set of smoothed points by fitting a quadratic to the data around the central point
- * @param {array} dataArray - an array of points
- * @param {number} width - the width of the quadratic to fit in points
- * @returns {array} - an array with the new points
- */
-ssci.smooth.quadratic = function(){
-    
-    var width = 5;
-    var l_width = 2;
-    var numPoints = 0;
-
-    var n = 0;
-    var x = 0;
-    var x2 = 0;
-    var x3 = 0;
-    var x4 = 0;
-    var y = 0;
-    var xy = 0;
-    var x2y = 0;
-    var d;
-    var b1;
-    var b2;
-    var b3;
-    var output = [];
-    var x_conv = function(d){ return d[0]; };
-    var y_conv = function(d){ return d[1]; };
-    var data = [];
-    
-    function qb() {
-        var dataArray = [];
-        
-        //Clear output array - needed to stop output growing when function called repeatedly
-		output = [];
-        
-        //Create array of data using accessors
-        dataArray = data.map( function(d){
-            return [x_conv(d), y_conv(d)];
-        });
-        numPoints = dataArray.length;
-        
-        for(var m=0;m<numPoints;m++){
-            for(var i=m-l_width;i<=m+l_width;i++){
-                var j;
-                j=i;
-                if(j<0){j=0;}
-                if(j>numPoints-1){j=numPoints-1;}
-                
-                n++;
-                x = x + dataArray[j][0];
-                x2 = x2 + Math.pow(dataArray[j][0],2);
-                x3 = x3 + Math.pow(dataArray[j][0],3);
-                x4 = x4 + Math.pow(dataArray[j][0],4);
-                y = y + dataArray[j][1];
-                xy = xy + dataArray[j][0] * dataArray[j][1];
-                x2y = x2y + Math.pow(dataArray[j][0],2) * dataArray[j][1];
-            }
-            
-            d = (n * (x2 * x4 - x3 * x3)) - (x * (x * x4 - x3 * x2)) + (x2 * (x * x3 - x2 * x2));
-            
-            b1 = (x2 * x4 - x3 * x3) * y - (x * x4 - x3 * x2) * xy + (x * x3 - x2 * x2) * x2y;
-            b2 = -(x * x4 - x2 * x3) * y + (n * x4 - x2 * x2) * xy - (n * x3 - x * x2) * x2y;
-            b3 = (x * x3 - x2 * x2) * y - (n * x3 - x * x2) * xy + (n * x2 - x * x) * x2y;
-            
-            output.push([dataArray[m][0], (b1/d) + dataArray[m][0] * (b2/d) + dataArray[m][0] * dataArray[m][0] * (b3/d)]);    
-            
-            //Reset x and y values
-            n = 0;
-            x = 0;
-            x2 = 0;
-            x3 = 0;
-            x4 = 0;
-            y = 0;
-            xy = 0;
-            x2y = 0;
-        }
-    }
-    
-    qb.width = function(value){
-        if(typeof value!== 'number'){
-            console.log('width appears to not be a number - changed to 5');
-            return qb;
-        }
-        if(value % 2 === 0){
-            value--;
-        }
-        if(value < 3){
-            value = 5;
-        }
-        
-        width = value;
-        l_width = Math.floor(value/2);
-        
-        return qb;
-    };
-    
-    qb.data = function(value){
-        data = value;
-		
-		return qb;
-    };
-    
-    qb.x = function(value){
-        if(!arguments.length){ return x_conv; }
-        x_conv = value;
-        return qb;
-    };
-    
-    qb.y = function(value){
-        if(!arguments.length){ return y_conv; }
-        y_conv = value;
-        return qb;
-    };
-    
-    qb.output = function(){
-        return output;
-    };
-    
-    return qb;
-    
 };
 
 /** 
@@ -2963,30 +3328,6 @@ ssci.ts.pacf = function(){
     return run;
 };
 /**
- * Gamma function - Taken from http://stackoverflow.com/questions/15454183/how-to-make-a-function-that-computes-the-factorial-for-numbers-with-decimals
- *  which in turn is taken from the wikipedia page
- * @param {number} z - real number to calculate the gamma function for
- * @returns {number} the result of the calculation
- */
-ssci.gamma = function(z) {
-    var g = 7;
-    var C = [0.99999999999980993, 676.5203681218851, -1259.1392167224028,771.32342877765313, -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
-
-    if (z < 0.5){
-        return Math.PI / (Math.sin(Math.PI * z) * this.gamma(1 - z));
-    } else {
-        z -= 1;
-
-        var x = C[0];
-        for (var i = 1; i < g + 2; i++)
-        x += C[i] / (z + i);
-
-        var t = z + g + 0.5;
-        return Math.sqrt(2 * Math.PI) * Math.pow(t, (z + 0.5)) * Math.exp(-t) * x;
-    }
-};
-
-/**
  * Creates a string for the d attribute of the SVG <path> element given a type of path to create and a set of points
  * @param {string} interpolation - the type of path to create - linear or cubic
  * @param {array} points - a set of points
@@ -3161,6 +3502,7 @@ ssci.toStringArray = function(e){
     });
     return f.join("\n");
 };
+
 return ssci;
 
 }( this ));
