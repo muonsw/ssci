@@ -1,6 +1,6 @@
-/*! ssci v1.3.0 
+/*! ssci v1.3.1 
  *  JavaScript smoothing, seasonal and regression functions 
- *  2018-10-28 
+ *  2019-04-13 
  *  License: MIT 
  *  Copyright (C) 2018 Simon West
  */
@@ -947,9 +947,9 @@
   }
 })(this);
 
-/*! ssci v1.3.0 
+/*! ssci v1.3.1 
  *  JavaScript smoothing, seasonal and regression functions 
- *  2018-10-28 
+ *  2019-04-13 
  *  License: MIT 
  *  Copyright (C) 2018 Simon West
  */
@@ -1016,23 +1016,43 @@ ssci.fore.expon = function(){
         }
     }
     
+    /**
+     * Define a function to convert the x data passed in to the function. The default function just takes the first number in the arrays of array of data points
+     * @param {function} [value] - A function to convert the x data for use in the function
+     * @returns The conversion function if no parameter is passed in
+     */
     retVar.x = function(value){
         if(!arguments.length){ return x_conv; }
         x_conv = value;
         return retVar;
     };
     
+    /**
+     * Define a function to convert the y data passed in to the function. The default function just takes the second number in the arrays of array of data points
+     * @param {function} [value] - A function to convert the y data for use in the function
+     * @returns The conversion function if no parameter is passed in
+     */
     retVar.y = function(value){
         if(!arguments.length){ return y_conv; }
         y_conv = value;
         return retVar;
     };
     
+    /**
+     * Input the data. The default format is as an array of arrays of x and y values i.e. [['x1','y1']['x2','y2']]
+     * @param value - the data
+     * @returns The enclosing function
+     */
     retVar.data = function(value){
         data = value;
         return retVar;
     };
     
+    /**
+     * Define or get the factor to smooth the data by
+     * @param {number} [value=0.3] - A number between 0 and 1 to smooth the data by
+     * @returns Either the factor or the enclosing object
+     */
     retVar.factor = function(value){
         if(!arguments.length){ return factor; }
         
@@ -1053,9 +1073,18 @@ ssci.fore.expon = function(){
         return retVar;
     };
     
+    /**
+     * Returns the smoothed data
+     * @returns The smoothed data
+     */
     retVar.output = function(){
         return output;
     };
+
+    /**
+     * Returns the residuals
+     * @returns The residuals
+     */
     retVar.residuals = function(){
         return resids;
     };
@@ -1068,10 +1097,7 @@ ssci.fore.expon = function(){
 
 /**
  * Holt's Exponential Smoothing
- * @param {array} dataArray - an array of points
- * @param {number} factor - factor to smooth by
- * @param {number} trend - factor for the trend smoothing
- * @return {object} Object containing the forecast points, the residuals, the sum of squares of the residuals and the factor
+ * @returns {object} Object containing the forecast points, the residuals, the sum of squares of the residuals and the factor
  */
 ssci.fore.holt = function(){
     var data = [];
@@ -1161,6 +1187,11 @@ ssci.fore.holt = function(){
         
     }
     
+    /**
+     * Get or set the initial value for the level
+     * @param {number} [value] - The value for the level
+     * @returns Either the value for the level or the enclosing object
+     */
     retVar.initialLevel = function(value){
         if(!arguments.length){ return l[0]; }
         l = [];
@@ -1170,6 +1201,11 @@ ssci.fore.holt = function(){
         return retVar;
     };
     
+    /**
+     * Get or set the initial value for the trend
+     * @param {number} [value] - The value for the trend
+     * @returns Either the value for the trend or the enclosing object
+     */
     retVar.initialTrend = function(value){
         if(!arguments.length){ return t[0]; }
         t = [];
@@ -1179,23 +1215,43 @@ ssci.fore.holt = function(){
         return retVar;
     };
     
+    /**
+     * Define a function to convert the x data passed in to the function. The default function just takes the first number in the arrays of array of data points
+     * @param {function} [value] - A function to convert the x data for use in the function
+     * @returns The conversion function if no parameter is passed in, otherwise returns the enclosing object.
+     */
     retVar.x = function(value){
         if(!arguments.length){ return x_conv; }
         x_conv = value;
         return retVar;
     };
     
+    /**
+     * Define a function to convert the y data passed in to the function. The default function just takes the second number in the arrays of array of data points
+     * @param {function} [value] - A function to convert the y data for use in the function
+     * @returns The conversion function if no parameter is passed in, otherwise returns the enclosing object.
+     */
     retVar.y = function(value){
         if(!arguments.length){ return y_conv; }
         y_conv = value;
         return retVar;
     };
     
+    /**
+     * Input the data. The default format is as an array of arrays of x and y values i.e. [['x1','y1']['x2','y2']]
+     * @param value - the data
+     * @returns The enclosing object
+     */
     retVar.data = function(value){
         data = value;
         return retVar;
     };
     
+    /**
+     * Define or get the factor to smooth the data by
+     * @param {number} [value=0.3] - A number between 0 and 1 to smooth the data by
+     * @returns Either the factor or the enclosing object
+     */
     retVar.factor = function(value){
         if(!arguments.length){ return factor; }
         
@@ -1216,16 +1272,35 @@ ssci.fore.holt = function(){
         return retVar;
     };
     
+    /**
+     * Returns the smoothed data
+     * @returns The smoothed data
+     */
     retVar.output = function(){
         return output;
     };
+
+    /**
+     * Returns the residuals
+     * @returns The residuals
+     */
     retVar.residuals = function(){
         return resids;
     };
+
+    /**
+     * Returns the sum of squares of the residuals
+     * @returns The sum of squares of the residuals
+     */
     retVar.sumSquares = function(){
         return sumsq;
     };
     
+    /**
+     * Provide or get the trend factor
+     * @param {number} [value] - The trend factor
+     * @returns If no parameter is passed in then the current trend value. Otherwise it will return the enclosing object.
+     */
     retVar.trend = function(value){
         if(!arguments.length){ return trend; }
         
@@ -1246,6 +1321,11 @@ ssci.fore.holt = function(){
         return retVar;
     };
     
+    /**
+     * Provide a forecast of the function
+     * @param {number} [d] - The number of time units to forecast ahead. If the data is monthly then 2 is 2 months.
+     * @returns The forecast
+     */
     retVar.forecast = function(d){
         //Check that d is a number
         if(typeof d !== 'number'){
@@ -1254,6 +1334,23 @@ ssci.fore.holt = function(){
         //d=1 means one unit of time ahead. If the data is monthly, then d is in months
         var temp = l[l.length-1]+d*t[t.length-1];
         return temp;
+    };
+
+    /**
+     * Specify the function to calculate the initial trend value
+     * @param {'1' | '2' | '3' | '4'} [value='1'] - The function to calculate the initial value for the trend. The default is the average difference between the first 3 points
+     * @returns If no parameter is provided then the function type is provided otherwise the enclosing object is returned.
+     */
+    retVar.initialTrendCalculation = function(value){
+        if(!arguments.length){ return funcT; }
+        //Check that the function is valid
+        if(typeof funcs_T[value] !== 'function'){
+            throw new Error('Invalid function');
+        }
+        
+        funcT = value;
+        
+        return retVar;
     };
     
     return retVar;
@@ -1372,6 +1469,11 @@ ssci.fore.holtWinter = function(){
         }
     }
     
+    /**
+     * Get or set the initial value for the level
+     * @param {number} [value] - The value for the level
+     * @returns Either the value for the level or the enclosing object
+     */
     retVar.initialLevel = function(value){
         if(!arguments.length){ return l[0]; }
         l = [];
@@ -1381,6 +1483,11 @@ ssci.fore.holtWinter = function(){
         return retVar;
     };
     
+    /**
+     * Get or set the initial value for the trend
+     * @param {number} [value] - The value for the trend
+     * @returns Either the value for the trend or the enclosing object
+     */
     retVar.initialTrend = function(value){
         if(!arguments.length){ return t[0]; }
         t = [];
@@ -1390,6 +1497,11 @@ ssci.fore.holtWinter = function(){
         return retVar;
     };
     
+    /**
+     * Get or set the initial value for the seasonality
+     * @param {number} [value] - The value for the seasonality
+     * @returns Either the value for the seasonality or the enclosing object
+     */
     retVar.initialSeason = function(value){
         if(!arguments.length){ return s.slice(0,period); }
         //Is value an array and of the same length/size as period
@@ -1402,6 +1514,11 @@ ssci.fore.holtWinter = function(){
         return retVar;
     };
     
+    /**
+     * Get or set the periodicity of the data set
+     * @param {number} [value] - The periodicity
+     * @returns Either the periodicity or the enclosing object
+     */
     retVar.period = function(value){
         if(!arguments.length){
             return period;
@@ -1416,6 +1533,11 @@ ssci.fore.holtWinter = function(){
         }
     };
     
+    /**
+     * Input the data. The default format is as an array of arrays of x and y values i.e. [['x1','y1']['x2','y2']]
+     * @param value - the data
+     * @returns The enclosing object
+     */
     retVar.data = function(value){
         data = value;
         numPoints = data.length;
@@ -1428,23 +1550,57 @@ ssci.fore.holtWinter = function(){
         return retVar;
     };
     
+    /**
+     * Define a function to convert the x data passed in to the function. The default function just takes the first number in the arrays of array of data points
+     * @param {function} [value] - A function to convert the x data for use in the function
+     * @returns The conversion function if no parameter is passed in, otherwise returns the enclosing object.
+     */
     retVar.x = function(value){
         if(!arguments.length){ return x_conv; }
         x_conv = value;
         return retVar;
     };
     
+    /**
+     * Define a function to convert the y data passed in to the function. The default function just takes the second number in the arrays of array of data points
+     * @param {function} [value] - A function to convert the y data for use in the function
+     * @returns The conversion function if no parameter is passed in, otherwise returns the enclosing object.
+     */
     retVar.y = function(value){
         if(!arguments.length){ return y_conv; }
         y_conv = value;
         return retVar;
     };
     
+    /**
+     * Returns the smoothed data
+     * @returns The smoothed data
+     */
     retVar.output = function(){ return output; };
+
+    /**
+     * Returns the smoothed y points
+     * @returns The smoothed y points
+     */
     retVar.outputY = function(){ return output.map(function(e){ return e[1]; }); };
+
+    /**
+     * Returns the residuals
+     * @returns The residuals
+     */
     retVar.residuals = function(){ return resids; };
+    
+    /**
+     * Returns the sum of squares of the residuals
+     * @returns The sum of squares of the residuals
+     */
     retVar.sumSquares = function(){ return sumsq; };
     
+    /**
+     * Provide or get the level factor
+     * @param {number} [value] - The level factor
+     * @returns If no parameter is passed in then the current level value. Otherwise it will return the enclosing object.
+     */
     retVar.level = function(value){
         if(arguments.length===0){
             return factor;
@@ -1464,6 +1620,11 @@ ssci.fore.holtWinter = function(){
         }
     };
     
+    /**
+     * Provide or get the trend factor
+     * @param {number} [value] - The trend factor
+     * @returns If no parameter is passed in then the current trend value. Otherwise it will return the enclosing object.
+     */
     retVar.trend = function(value){
         if(arguments.length===0){
             return trend;
@@ -1483,6 +1644,11 @@ ssci.fore.holtWinter = function(){
         }
     };
     
+    /**
+     * Provide or get the seasonal factor
+     * @param {number} [value] - The seasonal factor
+     * @returns If no parameter is passed in then the current seasonal value. Otherwise it will return the enclosing object.
+     */
     retVar.season = function(value){
         if(arguments.length===0){
             return season;
@@ -1502,6 +1668,11 @@ ssci.fore.holtWinter = function(){
         }
     };
     
+    /**
+     * Provide a forecast of the function
+     * @param {number} [d] - The number of time units to forecast ahead. If the data is monthly then 2 is 2 months.
+     * @returns The forecast
+     */
     retVar.forecast = function(d){
         //d is the number of periods forward to forecast the number
         var tempForecast = [];
@@ -1577,8 +1748,6 @@ ssci.reg.determinantBig = function(p){
 
 /**
  * Fit a polynomial to the set of points passed to the function i.e. least squares regression but return object and use Big objects
- * @param {array} dataArray - an array of points
- * @param {number} order - the order of the polynomial i.e. 2 for quadratic, 1 for linear etc.
  * @returns {object} object containing an array of points ('x' coordinate in the first element of the point), array of constants for the polynomial and array of residuals
  */
 ssci.reg.polyBig = function(){
@@ -1681,6 +1850,11 @@ ssci.reg.polyBig = function(){
         }
     }
     
+    /**
+     * Get or set the order of the polynomial
+     * @param {number} [value] - the order of the polynomial i.e. 2 for quadratic, 1 for linear etc.
+     * @returns If no parameter is passed in then return the order, otherwise return the enclosing object
+     */
     rp.order = function(value){
         if(!arguments.length){ return order; }
         
@@ -1696,36 +1870,67 @@ ssci.reg.polyBig = function(){
         return rp;
     };
     
+    /**
+     * Get an array of the input x values with the fitted y values
+     * @returns An array of fitted values
+     */
     rp.output = function(){
         return output;
     };
     
+    /**
+     * Define a function to convert the x data passed in to the function. The default function just takes the first number in the arrays of array of data points.
+     * @param {function} [value] - A function to convert the x data for use in the function.
+     * @returns The conversion function if no parameter is passed in, otherwise returns the enclosing object.
+     */
     rp.x = function(value){
         if(!arguments.length){ return x_conv; }
         x_conv = value;
         return rp;
     };
     
+    /**
+     * Define a function to convert the y data passed in to the function. The default function just takes the second number in the arrays of array of data points
+     * @param {function} [value] - A function to convert the y data for use in the function
+     * @returns The conversion function if no parameter is passed in, otherwise returns the enclosing object.
+     */
     rp.y = function(value){
         if(!arguments.length){ return y_conv; }
         y_conv = value;
         return rp;
     };
     
+    /**
+     * Function to set the data used
+     * @param {array} value - an array of points
+     * @returns The enclosing object
+     */
     rp.data = function(value){
         data = value;
         return rp;
     };
     
+    /**
+     * Returns the residuals after the fitted polynomial has been created
+     * @returns The residuals
+     */
     rp.residuals = function(){
         return resids;
     };
     
+    /**
+     * Returns the constants of the fitted polynomial
+     * @returns An array of constants
+     */
     rp.constants = function(){
         return con2;
     };
     
-    //Predict a new figure given an x value
+    /**
+     * Predict a new figure given an x value
+     * @param {number} d - The x value to return a y value for
+     * @returns The fitted number
+     */
     rp.forecast = function(d){
         //Check that d is a number
         if(typeof d !== 'number'){
@@ -1745,9 +1950,7 @@ ssci.reg.polyBig = function(){
 
 /**
  * Deseasonalise data based on the average for the period (specified by label range).
- * @param {array} dataArray - an array of points
- * @param {array} labels - an array holding the labels that specify the period e.g. Jan, Feb, Mar etc.
- * @returns {array} - an array with the new points 
+ * @returns {function} - the function to average the data
  */
 ssci.season.average = function(){
 
@@ -1820,28 +2023,51 @@ ssci.season.average = function(){
         }
     }
     
+    /**
+     * Pass in an array of data labels that define the period
+     * @param {array} value - an array holding the labels that specify the period e.g. Jan, Feb, Mar etc.
+     */
     sa.labels = function(value){
         labels = value;
         
         return sa;
     };
     
+    /**
+     * Returns the averaged data
+     * @returns The averaged data
+     */
     sa.output = function(){
         return output;
     };
     
+    /**
+     * Define a function to convert the x data passed in to the function. The default function just takes the first number in the arrays of array of data points
+     * @param {function} [value] - A function to convert the x data for use in the function
+     * @returns The conversion function if no parameter is passed in, otherwise returns the enclosing object.
+     */
     sa.x = function(value){
         if(!arguments.length){ return x_conv; }
         x_conv = value;
         return sa;
     };
     
+    /**
+     * Define a function to convert the y data passed in to the function. The default function just takes the second number in the arrays of array of data points
+     * @param {function} [value] - A function to convert the y data for use in the function
+     * @returns The conversion function if no parameter is passed in, otherwise returns the enclosing object.
+     */
     sa.y = function(value){
         if(!arguments.length){ return y_conv; }
         y_conv = value;
         return sa;
     };
     
+    /**
+     * A function to set the data. The default format is as an array of arrays of x and y values i.e. [['x1','y1']['x2','y2']]
+     * @param value - the data
+     * @returns The enclosing object
+     */
     sa.data = function(value){
         data = value;
         return sa;
@@ -1852,9 +2078,7 @@ ssci.season.average = function(){
 
 /**
  * Deseasonalise the data by differencing the data and adding the moving average
- * @param {array} dataArray - an array of points
- * @param {number} frequency - the number of points to difference over
- * @returns {array} - an array with the new points
+ * @returns {function} - the function to create the points
  */
 ssci.season.difference = function(){
     
@@ -1899,27 +2123,50 @@ ssci.season.difference = function(){
         }
     }
     
+    /**
+     * Returns the deseasonalised data
+     * @returns The deseasonalised data
+     */
     sa.output = function(){
         return output;
     };
     
+    /**
+     * Define a function to convert the x data passed in to the function. The default function just takes the first number in the arrays of array of data points
+     * @param {function} [value] - A function to convert the x data for use in the function
+     * @returns The conversion function if no parameter is passed in, otherwise returns the enclosing object.
+     */
     sa.x = function(value){
         if(!arguments.length){ return x_conv; }
         x_conv = value;
         return sa;
     };
     
+    /**
+     * Define a function to convert the y data passed in to the function. The default function just takes the second number in the arrays of array of data points
+     * @param {function} [value] - A function to convert the y data for use in the function
+     * @returns The conversion function if no parameter is passed in, otherwise returns the enclosing object.
+     */
     sa.y = function(value){
         if(!arguments.length){ return y_conv; }
         y_conv = value;
         return sa;
     };
     
+    /**
+     * Input the data. The default format is as an array of arrays of x and y values i.e. [['x1','y1']['x2','y2']]
+     * @param value - the data
+     * @returns The enclosing object
+     */
     sa.data = function(value){
         data = value;
         return sa;
     };
     
+    /**
+     * Define the frequency of the data series
+     * @param {number} frequency - the number of points to difference over
+     */
     sa.frequency = function(value){
         if(!arguments.length){ return frequency; }
         
@@ -1939,10 +2186,8 @@ ssci.season.difference = function(){
 
 /**
  * Deseasonalise data based on taking the moving average
- * @param {array} dataArray - an array of points
  * @param {number} frequency - the number of points to average over
- * @param {boolean} lastN - true if calculating an average over the last n points, false for a central average 
- * @returns {array} - an array with the new points
+ * @returns {function} - the function to create the points
  */
 ssci.season.movingAverage = function(){
     
@@ -1999,6 +2244,11 @@ ssci.season.movingAverage = function(){
         }
     }
     
+    /**
+     * Get or set a boolean value to state whether the average is calculated over the last n points or as a central average.
+     * @param {boolean} value - true if calculating an average over the last n points, false for a central average.
+     * @returns If no parameter is passed in then the value is returned, otherwise returns the enclosing object
+     */
     sa.end = function(value){
         if(!arguments.length){ return lastN; }
         
@@ -2012,27 +2262,51 @@ ssci.season.movingAverage = function(){
         return sa;
     };
     
+    /**
+     * Returns the averaged data
+     * @returns The averaged data
+     */
     sa.output = function(){
         return output;
     };
     
+    /**
+     * Define a function to convert the x data passed in to the function. The default function just takes the first number in the arrays of array of data points
+     * @param {function} [value] - A function to convert the x data for use in the function
+     * @returns The conversion function if no parameter is passed in, otherwise returns the enclosing object.
+     */
     sa.x = function(value){
         if(!arguments.length){ return x_conv; }
         x_conv = value;
         return sa;
     };
     
+    /**
+     * Define a function to convert the y data passed in to the function. The default function just takes the second number in the arrays of array of data points
+     * @param {function} [value] - A function to convert the y data for use in the function
+     * @returns The conversion function if no parameter is passed in, otherwise returns the enclosing object.
+     */
     sa.y = function(value){
         if(!arguments.length){ return y_conv; }
         y_conv = value;
         return sa;
     };
     
+    /**
+     * Input the data. The default format is as an array of arrays of x and y values i.e. [['x1','y1']['x2','y2']]
+     * @param value - the data
+     * @returns The enclosing object
+     */
     sa.data = function(value){
         data = value;
         return sa;
     };
     
+    /**
+     * Get or set the frequency of the data series
+     * @param {number} [value] - The frequency of the data series i.e. if monthly then frequency is 12.
+     * @returns The frequency if no parameter is passed in, otherwise returns the enclosing object.
+     */
     sa.frequency = function(value){
         if(!arguments.length){ return frequency; }
         
@@ -2106,10 +2380,10 @@ ssci.smooth.ahenderson = function(filter, term, IC){
 
 /**
  * Create henderson filters of term 'term'
- * Returns an array with the terms
  * Formula taken from http://www.ons.gov.uk/ons/rel/elmr/economic-trends--discontinued-/no--633--august-2006/fitting-trends-to-time-series-data.pdf
+ * @param {number} term - The number of terms in this Henderson filter
+ * @returns an array with the terms
  */ 
-
 ssci.smooth.henderson = function(term){
     if(typeof term !== 'number'){
         throw new Error('Term must a number');
@@ -2280,9 +2554,7 @@ function k_S(x1, x2, b){
  * Exponentially smooth a data series - data series should be evenly spaced in the x-coordinate
  * This is the exponentially weighted moving average rather than what is more generally known as exponential smoothing.
  * Only good for non-trended, non-seasonal data
- * @param {array} dataArray - an array of points
- * @param {number} factor - factor to smooth by
- * @returns {array} - an array with the new points
+ * @returns {function} - the function to create the points
  */
 ssci.smooth.EWMA = function(){
     
@@ -2314,27 +2586,51 @@ ssci.smooth.EWMA = function(){
         }
     }
     
+    /**
+     * Returns the smoothed data
+     * @returns The smoothed data
+     */
     sm.output = function(){
         return output;
     };
     
+    /**
+     * Define a function to convert the x data passed in to the function. The default function just takes the first number in the arrays of array of data points
+     * @param {function} [value] - A function to convert the x data for use in the function
+     * @returns The conversion function if no parameter is passed in, otherwise returns the enclosing object.
+     */
     sm.x = function(value){
         if(!arguments.length){ return x_conv; }
         x_conv = value;
         return sm;
     };
     
+    /**
+     * Define a function to convert the y data passed in to the function. The default function just takes the second number in the arrays of array of data points
+     * @param {function} [value] - A function to convert the y data for use in the function
+     * @returns The conversion function if no parameter is passed in, otherwise returns the enclosing object.
+     */
     sm.y = function(value){
         if(!arguments.length){ return y_conv; }
         y_conv = value;
         return sm;
     };
     
+    /**
+     * Input the data. The default format is as an array of arrays of x and y values i.e. [['x1','y1']['x2','y2']]
+     * @param value - the data
+     * @returns The enclosing object
+     */
     sm.data = function(value){
         data = value;
         return sm;
     };
     
+    /**
+     * Define or get the factor to smooth the data by
+     * @param {number} [value=0.3] - A number between 0 and 1 to smooth the data by
+     * @returns Either the factor or the enclosing object
+     */
     sm.factor = function(value){
         if(!arguments.length){ return factor; }
         
@@ -2360,6 +2656,7 @@ ssci.smooth.EWMA = function(){
 
 /** 
  * Take an array of points and returns a set of smoothed points by applying a filter to the data
+ * @returns {function} - the function to create the points
  */
 ssci.smooth.filter = function(){
     
@@ -2456,27 +2753,51 @@ ssci.smooth.filter = function(){
         
     }
     
+    /**
+     * Returns the smoothed data
+     * @returns The smoothed data
+     */
     sm.output = function(){
         return output;
     };
     
+    /**
+     * Define a function to convert the x data passed in to the function. The default function just takes the first number in the arrays of array of data points
+     * @param {function} [value] - A function to convert the x data for use in the function
+     * @returns The conversion function if no parameter is passed in, otherwise returns the enclosing object.
+     */
     sm.x = function(value){
         if(!arguments.length){ return x_conv; }
         x_conv = value;
         return sm;
     };
     
+    /**
+     * Define a function to convert the y data passed in to the function. The default function just takes the second number in the arrays of array of data points
+     * @param {function} [value] - A function to convert the y data for use in the function
+     * @returns The conversion function if no parameter is passed in, otherwise returns the enclosing object.
+     */
     sm.y = function(value){
         if(!arguments.length){ return y_conv; }
         y_conv = value;
         return sm;
     };
     
+    /**
+     * Input the data. The default format is as an array of arrays of x and y values i.e. [['x1','y1']['x2','y2']]
+     * @param value - the data
+     * @returns The enclosing object
+     */
     sm.data = function(value){
         data = value;
         return sm;
     };
     
+    /**
+     * Set or get the filter to apply to the data
+     * @param {array} [value] - An array containing the numbers to apply as a filter
+     * @returns Either the filter or the enclosing object
+     */
     sm.filter = function(value){
         //Set the filter
         if(!arguments.length){ return filter; }
@@ -2491,6 +2812,11 @@ ssci.smooth.filter = function(){
         return sm;
     };
     
+    /**
+     * Set where to apply the filter
+     * @param {array} [value] - An array containing the two x-values between which the fillter will be applied.
+     * @returns Either the limits array or the enclosing object
+     */
     sm.limits = function(value){
         //Set limits of filter i.e. where to apply it
         if(!arguments.length){ return [m1,m2]; }
@@ -2513,6 +2839,8 @@ ssci.smooth.filter = function(){
     
     /**
      * Set whether values are calculated for the end of a series - false to calculate them
+     * @param {boolean} [value] - Should the ends be removed?
+     * @returns Either the value or the enclosing object
      */
     sm.end = function(value){
         if(!arguments.length){ return removeEnds; }
@@ -2530,6 +2858,7 @@ ssci.smooth.filter = function(){
     /**
      * Calculate gain
      * @param {number} d The period to calculate the gain for
+     * @returns The gain
      */
     sm.gain = function(d){
         if(typeof d !== 'number'){ throw new Error('Input must be a number'); }
@@ -2551,6 +2880,7 @@ ssci.smooth.filter = function(){
     /**
      * Calculate the phase shift caused by the filter
      * @param {number} d The period to calculate the phase shift for
+     * @returns The phase shift
      */
     sm.phaseShift = function(d){
         if(typeof d !== 'number'){ throw new Error('Input must be a number'); }
@@ -2588,7 +2918,8 @@ ssci.smooth.filter = function(){
 
     /**
      * Set or get the function to calculate the weights for the start of the data series if 'end' is false
-     * @param {function} 
+     * @param {function} value - The function to use to calculate the weights to use - default is an asymmetric Henderson filter
+     * @returns Either the value or the enclosing object
      */
     sm.left = function(value){
         if(!arguments.length){ return l_filt; }
@@ -2598,6 +2929,8 @@ ssci.smooth.filter = function(){
     
     /**
      * Set or get the function to calculate the weights for the end of the data series if 'end' is false
+     * @param {function} value - The function to use to calculate the weights to use - default is an asymmetric Henderson filter
+     * @returns Either the value or the enclosing object
      */
     sm.right = function(value){
         if(!arguments.length){ return r_filt; }
@@ -2611,10 +2944,7 @@ ssci.smooth.filter = function(){
 
 /** 
  * Take an array of points and returns a set of smoothed points by applying a filter (specified by the kernel function) to the data
- * @param {string} kernel - the smoothing kernel to use
- * @param {array} dataArray - an array of points
- * @param {number|array} scale - an array or number containing the scaling parameters of the kernel
- * @returns {array} - an array with the new points
+ * @returns {function} - the function to create the points
  */
 ssci.smooth.kernel = function(){
 
@@ -2697,6 +3027,11 @@ ssci.smooth.kernel = function(){
         }
     }
     
+    /**
+     * Define the scale for the kernel. This can take a number or an array of numbers. Generally the array will have the same number of values as the data array.
+     * @param {number|array} [value] - an array or number containing the scaling parameters of the kernel.
+     * @returns If no parameter is passed in then the scale is returned, otherwise returns the enclosing object.
+     */
     sk.scale = function(value){
         if(!arguments.length){ return scale; }
         scale = value;
@@ -2704,6 +3039,11 @@ ssci.smooth.kernel = function(){
         return sk;
     };
     
+    /**
+     * Define the kernel function to use in the smoothing function. The default is 'Gaussian'
+     * @param {'Uniform' | 'Triangle' | 'Epanechnikov' | 'Quartic' | Triweight | 'Logistic' | 'Cosine' | 'Gaussian' | 'Tricube' | 'Silverman'} [value='Gaussian'] - the smoothing kernel to use
+     * @returns The kernel if no parameter is passed in
+     */
     sk.kernel = function(value){
         if(!arguments.length){ return kernel; }
         //Check that the kernel is valid
@@ -2716,22 +3056,41 @@ ssci.smooth.kernel = function(){
         return sk;
     };
     
+    /**
+     * Define a function to convert the x data passed in to the kernel function. The default function just takes the first number in the arrays of array of data points
+     * @param {function} [value] - A function to convert the x data for use in the function
+     * @returns The conversion function if no parameter is passed in, otherwise returns the enclosing object.
+     */
     sk.x = function(value){
         if(!arguments.length){ return x_conv; }
         x_conv = value;
         return sk;
     };
     
+    /**
+     * Define a function to convert the y data passed in to the kernel function. The default function just takes the second number in the arrays of array of data points
+     * @param {function} [value] - A function to convert the y data for use in the function
+     * @returns The conversion function if no parameter is passed in, otherwise returns the enclosing object.
+     */
     sk.y = function(value){
         if(!arguments.length){ return y_conv; }
         y_conv = value;
         return sk;
     };
     
+    /**
+     * Returns the smoothed data
+     * @returns The smoothed data
+     */
     sk.output = function(){
         return output;
     };
-        
+
+    /**
+     * Input the data. The default format is as an array of arrays of x and y values i.e. [['x1','y1']['x2','y2']]
+     * @param value - the data
+     * @returns The enclosing object
+     */
     sk.data = function(value){
 		data = value;
 		
@@ -2744,10 +3103,7 @@ ssci.smooth.kernel = function(){
 /** 
  * Take an array of points and returns a set of smoothed points by applying a filter (specified by the kernel function) to the data
  * This function cuts off the kernel calculations after the kernel decreases beyond a certain level
- * @param {string} kernel - the smoothing kernel to use
- * @param {array} dataArray - an array of points
- * @param {number|array} scale - an array or number containing the scaling parameters of the kernel
- * @returns {array} - an array with the new points
+ * @returns {function} - the function to create the points
  */
 ssci.smooth.kernel2 = function(){
 
@@ -2848,6 +3204,11 @@ ssci.smooth.kernel2 = function(){
         }
     }
     
+    /**
+     * Define the scale for the kernel. This can take a number or an array of numbers. Generally the array will have the same number of values as the data array.
+     * @param {number|array} [value] - an array or number containing the scaling parameters of the kernel
+     * @returns If no parameter is passed in then the scale is returned
+     */
     sk.scale = function(value){
         if(!arguments.length){ return scale; }
         scale = value;
@@ -2855,6 +3216,11 @@ ssci.smooth.kernel2 = function(){
         return sk;
     };
     
+    /**
+     * Define the kernel function to use in the smoothing function. The default is 'Gaussian'
+     * @param {'Uniform' | 'Triangle' | 'Epanechnikov' | 'Quartic' | Triweight | 'Logistic' | 'Cosine' | 'Gaussian' | 'Tricube' | 'Silverman'} [value='Gaussian'] - the smoothing kernel to use
+     * @returns The kernel if no parameter is passed in
+     */
     sk.kernel = function(value){
         if(!arguments.length){ return kernel; }
         //Check that the kernel is valid
@@ -2867,22 +3233,41 @@ ssci.smooth.kernel2 = function(){
         return sk;
     };
     
+    /**
+     * Define a function to convert the x data passed in to the kernel function. The default function just takes the first number in the arrays of array of data points
+     * @param {function} [value] - A function to convert the x data for use in the function
+     * @returns The conversion function if no parameter is passed in
+     */
     sk.x = function(value){
         if(!arguments.length){ return x_conv; }
         x_conv = value;
         return sk;
     };
     
+    /**
+     * Define a function to convert the y data passed in to the kernel function. The default function just takes the second number in the arrays of array of data points
+     * @param {function} [value] - A function to convert the y data for use in the function
+     * @returns The conversion function if no parameter is passed in
+     */
     sk.y = function(value){
         if(!arguments.length){ return y_conv; }
         y_conv = value;
         return sk;
     };
     
+    /**
+     * Returns the smoothed data
+     * @returns The smoothed data
+     */
     sk.output = function(){
         return output;
     };
     
+    /**
+     * Define or return the stopping parameter. The calculation will stop once the proportional value calculated is less than this value.
+     * @param {number} [value=0.001] - The number to stop the calculation at. The dafault number stops the calculation once the adjusted points add less then 0.1% to the total adjusted figure.
+     * @returns Either the value or the enclosing object
+     */
     sk.diff = function(value){
         if(!arguments.length){ return max_diff; }
         max_diff = value;
@@ -2890,6 +3275,11 @@ ssci.smooth.kernel2 = function(){
         return sk;
     };
     
+    /**
+     * Input the data. The default format is as an array of arrays of x and y values i.e. [['x1','y1']['x2','y2']]
+     * @param {array} dataArray - an array of points
+     * @returns The enclosing function
+     */
     sk.data = function(value){
 		data = value;
 		
@@ -2901,9 +3291,7 @@ ssci.smooth.kernel2 = function(){
 
 /** 
  * Take an array of points and returns a set of smoothed points by fitting a quadratic to the data around the central point using Big objects
- * @param {array} dataArray - an array of points
- * @param {number} width - the width of the quadratic to fit in points
- * @returns {array} - an array with the new points
+ * @returns {function} - the function to create the points
  */
 ssci.smooth.quadraticBig = function(){
     
@@ -2948,6 +3336,11 @@ ssci.smooth.quadraticBig = function(){
         }
     }
     
+    /**
+     * Get or set the width of the polynomial to fit to the data
+     * @param {number} value - the width of the quadratic to fit in points
+     * @returns Either the width if no parameter is passed in or the enclosing object
+     */
     qb.width = function(value){
         if(!arguments.length){ return width; }
         
@@ -2968,24 +3361,43 @@ ssci.smooth.quadraticBig = function(){
         return qb;
     };
     
+    /**
+     * Input the data. The default format is as an array of arrays of x and y values i.e. [['x1','y1']['x2','y2']]
+     * @param value - the data
+     * @returns The enclosing object
+     */
     qb.data = function(value){
         data = value;
 		
 		return qb;
     };
     
+    /**
+     * Define a function to convert the x data passed in to the function. The default function just takes the first number in the arrays of array of data points
+     * @param {function} [value] - A function to convert the x data for use in the function
+     * @returns The conversion function if no parameter is passed in, otherwise returns the enclosing object.
+     */
     qb.x = function(value){
         if(!arguments.length){ return x_conv; }
         x_conv = value;
         return qb;
     };
     
+    /**
+     * Define a function to convert the y data passed in to the function. The default function just takes the second number in the arrays of array of data points
+     * @param {function} [value] - A function to convert the y data for use in the function
+     * @returns The conversion function if no parameter is passed in, otherwise returns the enclosing object.
+     */
     qb.y = function(value){
         if(!arguments.length){ return y_conv; }
         y_conv = value;
         return qb;
     };
     
+    /**
+     * Returns the smoothed data
+     * @returns The smoothed data
+     */
     qb.output = function(){
         return output;
     };
@@ -2994,10 +3406,7 @@ ssci.smooth.quadraticBig = function(){
 };
 /**
  * Calculates the auto-correlation
- * @param {array} dataArray - an array of points
- * @param {number} maxlag - maximum lag to calculate auto correlation for
- * @param {number} diffed - how many times the data has been differenced
- * @returns {array} an array of points with [lag, acf]
+ * @returns {function} - the function to create the points
  */
 ssci.ts.acf = function(){
 
@@ -3054,30 +3463,6 @@ ssci.ts.acf = function(){
             }
         }
         
-        //Calculate auto-correlation - method doesn't take stationarity into account
-        // for(var i=0;i<maxlag;i++){
-        //     var sx = 0;
-        //     var sy = 0;
-        //     var s1 = 0;
-        //     var s2 = 0;
-        //     var s3 = 0;
-            
-        //     for(var k = 0;k<(numPoints - lags[i] - diffed);k++){
-        //         sx = x[k] + sx;
-        //         sy = x[k + lags[i]] + sy;
-        //     }
-        //     sx = sx / (numPoints - lags[i] - diffed);
-        //     sy = sy / (numPoints - lags[i] - diffed);
-            
-        //     for(var k = 0;k<(numPoints - lags[i] - diffed);k++){
-        //         s1 = s1 + (x[k] - sx) * (x[k + lags[i]] - sy);
-        //         s2 = s2 + Math.pow(x[k] - sx,2);
-        //         s3 = s3 + Math.pow(x[k + lags[i]] - sy,2);
-        //     }
-
-        //     output.push([i, s1 / Math.sqrt(s2 * s3)]);
-        // }
-        
         //Calculate acf - assuming stationarity i.e. mean and variance constant (sort of)
         for(i=0;i<=maxlag;i++){
             var sx = 0;
@@ -3102,27 +3487,51 @@ ssci.ts.acf = function(){
         }
     }
     
+    /**
+     * Returns the correlation array
+     * @returns The correlation array
+     */
     run.output = function(){
         return output;
     };
     
+    /**
+     * Define a function to convert the x data passed in to the function. The default function just takes the first number in the arrays of array of data points
+     * @param {function} [value] - A function to convert the x data for use in the function
+     * @returns The conversion function if no parameter is passed in, otherwise returns the enclosing object.
+     */
     run.x = function(value){
         if(!arguments.length){ return x_conv; }
         x_conv = value;
         return run;
     };
     
+    /**
+     * Define a function to convert the y data passed in to the function. The default function just takes the second number in the arrays of array of data points
+     * @param {function} [value] - A function to convert the y data for use in the function
+     * @returns The conversion function if no parameter is passed in, otherwise returns the enclosing object.
+     */
     run.y = function(value){
         if(!arguments.length){ return y_conv; }
         y_conv = value;
         return run;
     };
     
+    /**
+     * Input the data. The default format is as an array of arrays of x and y values i.e. [['x1','y1']['x2','y2']]
+     * @param value - the data
+     * @returns The enclosing object
+     */
     run.data = function(value){
         data = value;
         return run;
     };
     
+    /**
+     * Get or set the maximum value of the lag to calculate the acf for
+     * @param {number} [value] - The maximum lag
+     * @returns The maximmum lag or the enclosing object
+     */
     run.maxlag = function(value){
         if(!arguments.length){ return maxlag; }
         
@@ -3135,6 +3544,11 @@ ssci.ts.acf = function(){
         return run;
     };
     
+    /**
+     * Get or set the number of times to difference the data
+     * @param {number} [value] - The number of times to difference the data
+     * @returns The number of times to difference the data or the enclosing object.
+     */
     run.diff = function(value){
         if(!arguments.length){ return diffed; }
         
@@ -3166,10 +3580,7 @@ ssci.ts.diff = function(dataArray){
 /**
  * Calculates the partial auto-correlation
  * Formula taken from https://www.empiwifo.uni-freiburg.de/lehre-teaching-1/winter-term/dateien-financial-data-analysis/handout-pacf.pdf
- * @param {array} dataArray - an array of points
- * @param {number} maxlag - maximum lag to calculate auto correlation for
- * @param {number} diffed - how many times the data has been differenced
- * @returns {array} an array of points with [lag, pacf]
+ * @returns {function} - the function to create the points
  */
 ssci.ts.pacf = function(){
     
@@ -3280,27 +3691,51 @@ ssci.ts.pacf = function(){
         }
     }
     
+    /**
+     * Returns the correlation array
+     * @returns The correlation array
+     */
     run.output = function(){
         return output;
     };
     
+    /**
+     * Define a function to convert the x data passed in to the function. The default function just takes the first number in the arrays of array of data points
+     * @param {function} [value] - A function to convert the x data for use in the function
+     * @returns The conversion function if no parameter is passed in, otherwise returns the enclosing object.
+     */
     run.x = function(value){
         if(!arguments.length){ return x_conv; }
         x_conv = value;
         return run;
     };
     
+    /**
+     * Define a function to convert the y data passed in to the function. The default function just takes the second number in the arrays of array of data points
+     * @param {function} [value] - A function to convert the y data for use in the function
+     * @returns The conversion function if no parameter is passed in, otherwise returns the enclosing object.
+     */
     run.y = function(value){
         if(!arguments.length){ return y_conv; }
         y_conv = value;
         return run;
     };
     
+    /**
+     * Input the data. The default format is as an array of arrays of x and y values i.e. [['x1','y1']['x2','y2']]
+     * @param value - the data
+     * @returns The enclosing object
+     */
     run.data = function(value){
         data = value;
         return run;
     };
     
+    /**
+     * Get or set the maximum value of the lag to calculate the partial acf for
+     * @param {number} [value] - The maximum lag
+     * @returns The maximmum lag or the enclosing object
+     */
     run.maxlag = function(value){
         if(!arguments.length){ return maxlag; }
         
@@ -3313,6 +3748,11 @@ ssci.ts.pacf = function(){
         return run;
     };
     
+    /**
+     * Get or set the number of times to difference the data
+     * @param {number} [value] - The number of times to difference the data
+     * @returns The number of times to difference the data or the enclosing object.
+     */
     run.diff = function(value){
         if(!arguments.length){ return diffed; }
         
@@ -3352,8 +3792,6 @@ ssci.interpString = function(interpolation, points){
     
     return outputString;
 };
-
-
 
 /**
  * Convert an object to an array of points (i.e. x and y coordinates)
