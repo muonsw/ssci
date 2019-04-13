@@ -1,8 +1,6 @@
 /** 
  * Take an array of points and returns a set of smoothed points by fitting a quadratic to the data around the central point using Big objects
- * @param {array} dataArray - an array of points
- * @param {number} width - the width of the quadratic to fit in points
- * @returns {array} - an array with the new points
+ * @returns {function} - the function to create the points
  */
 ssci.smooth.quadraticBig = function(){
     
@@ -47,6 +45,11 @@ ssci.smooth.quadraticBig = function(){
         }
     }
     
+    /**
+     * Get or set the width of the polynomial to fit to the data
+     * @param {number} value - the width of the quadratic to fit in points
+     * @returns Either the width if no parameter is passed in or the enclosing object
+     */
     qb.width = function(value){
         if(!arguments.length){ return width; }
         
@@ -67,24 +70,43 @@ ssci.smooth.quadraticBig = function(){
         return qb;
     };
     
+    /**
+     * Input the data. The default format is as an array of arrays of x and y values i.e. [['x1','y1']['x2','y2']]
+     * @param value - the data
+     * @returns The enclosing object
+     */
     qb.data = function(value){
         data = value;
 		
 		return qb;
     };
     
+    /**
+     * Define a function to convert the x data passed in to the function. The default function just takes the first number in the arrays of array of data points
+     * @param {function} [value] - A function to convert the x data for use in the function
+     * @returns The conversion function if no parameter is passed in, otherwise returns the enclosing object.
+     */
     qb.x = function(value){
         if(!arguments.length){ return x_conv; }
         x_conv = value;
         return qb;
     };
     
+    /**
+     * Define a function to convert the y data passed in to the function. The default function just takes the second number in the arrays of array of data points
+     * @param {function} [value] - A function to convert the y data for use in the function
+     * @returns The conversion function if no parameter is passed in, otherwise returns the enclosing object.
+     */
     qb.y = function(value){
         if(!arguments.length){ return y_conv; }
         y_conv = value;
         return qb;
     };
     
+    /**
+     * Returns the smoothed data
+     * @returns The smoothed data
+     */
     qb.output = function(){
         return output;
     };

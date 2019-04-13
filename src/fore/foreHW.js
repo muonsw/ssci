@@ -111,6 +111,11 @@ ssci.fore.holtWinter = function(){
         }
     }
     
+    /**
+     * Get or set the initial value for the level
+     * @param {number} [value] - The value for the level
+     * @returns Either the value for the level or the enclosing object
+     */
     retVar.initialLevel = function(value){
         if(!arguments.length){ return l[0]; }
         l = [];
@@ -120,6 +125,11 @@ ssci.fore.holtWinter = function(){
         return retVar;
     };
     
+    /**
+     * Get or set the initial value for the trend
+     * @param {number} [value] - The value for the trend
+     * @returns Either the value for the trend or the enclosing object
+     */
     retVar.initialTrend = function(value){
         if(!arguments.length){ return t[0]; }
         t = [];
@@ -129,6 +139,11 @@ ssci.fore.holtWinter = function(){
         return retVar;
     };
     
+    /**
+     * Get or set the initial value for the seasonality
+     * @param {number} [value] - The value for the seasonality
+     * @returns Either the value for the seasonality or the enclosing object
+     */
     retVar.initialSeason = function(value){
         if(!arguments.length){ return s.slice(0,period); }
         //Is value an array and of the same length/size as period
@@ -141,6 +156,11 @@ ssci.fore.holtWinter = function(){
         return retVar;
     };
     
+    /**
+     * Get or set the periodicity of the data set
+     * @param {number} [value] - The periodicity
+     * @returns Either the periodicity or the enclosing object
+     */
     retVar.period = function(value){
         if(!arguments.length){
             return period;
@@ -155,6 +175,11 @@ ssci.fore.holtWinter = function(){
         }
     };
     
+    /**
+     * Input the data. The default format is as an array of arrays of x and y values i.e. [['x1','y1']['x2','y2']]
+     * @param value - the data
+     * @returns The enclosing object
+     */
     retVar.data = function(value){
         data = value;
         numPoints = data.length;
@@ -167,23 +192,57 @@ ssci.fore.holtWinter = function(){
         return retVar;
     };
     
+    /**
+     * Define a function to convert the x data passed in to the function. The default function just takes the first number in the arrays of array of data points
+     * @param {function} [value] - A function to convert the x data for use in the function
+     * @returns The conversion function if no parameter is passed in, otherwise returns the enclosing object.
+     */
     retVar.x = function(value){
         if(!arguments.length){ return x_conv; }
         x_conv = value;
         return retVar;
     };
     
+    /**
+     * Define a function to convert the y data passed in to the function. The default function just takes the second number in the arrays of array of data points
+     * @param {function} [value] - A function to convert the y data for use in the function
+     * @returns The conversion function if no parameter is passed in, otherwise returns the enclosing object.
+     */
     retVar.y = function(value){
         if(!arguments.length){ return y_conv; }
         y_conv = value;
         return retVar;
     };
     
+    /**
+     * Returns the smoothed data
+     * @returns The smoothed data
+     */
     retVar.output = function(){ return output; };
+
+    /**
+     * Returns the smoothed y points
+     * @returns The smoothed y points
+     */
     retVar.outputY = function(){ return output.map(function(e){ return e[1]; }); };
+
+    /**
+     * Returns the residuals
+     * @returns The residuals
+     */
     retVar.residuals = function(){ return resids; };
+    
+    /**
+     * Returns the sum of squares of the residuals
+     * @returns The sum of squares of the residuals
+     */
     retVar.sumSquares = function(){ return sumsq; };
     
+    /**
+     * Provide or get the level factor
+     * @param {number} [value] - The level factor
+     * @returns If no parameter is passed in then the current level value. Otherwise it will return the enclosing object.
+     */
     retVar.level = function(value){
         if(arguments.length===0){
             return factor;
@@ -203,6 +262,11 @@ ssci.fore.holtWinter = function(){
         }
     };
     
+    /**
+     * Provide or get the trend factor
+     * @param {number} [value] - The trend factor
+     * @returns If no parameter is passed in then the current trend value. Otherwise it will return the enclosing object.
+     */
     retVar.trend = function(value){
         if(arguments.length===0){
             return trend;
@@ -222,6 +286,11 @@ ssci.fore.holtWinter = function(){
         }
     };
     
+    /**
+     * Provide or get the seasonal factor
+     * @param {number} [value] - The seasonal factor
+     * @returns If no parameter is passed in then the current seasonal value. Otherwise it will return the enclosing object.
+     */
     retVar.season = function(value){
         if(arguments.length===0){
             return season;
@@ -241,6 +310,11 @@ ssci.fore.holtWinter = function(){
         }
     };
     
+    /**
+     * Provide a forecast of the function
+     * @param {number} [d] - The number of time units to forecast ahead. If the data is monthly then 2 is 2 months.
+     * @returns The forecast
+     */
     retVar.forecast = function(d){
         //d is the number of periods forward to forecast the number
         var tempForecast = [];

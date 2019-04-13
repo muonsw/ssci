@@ -1,9 +1,9 @@
 /**
  * Create henderson filters of term 'term'
- * Returns an array with the terms
  * Formula taken from http://www.ons.gov.uk/ons/rel/elmr/economic-trends--discontinued-/no--633--august-2006/fitting-trends-to-time-series-data.pdf
+ * @param {number} term - The number of terms in this Henderson filter
+ * @returns an array with the terms
  */ 
-
 ssci.smooth.henderson = function(term){
     if(typeof term !== 'number'){
         throw new Error('Term must a number');

@@ -1,9 +1,6 @@
 /**
  * Holt's Exponential Smoothing
- * @param {array} dataArray - an array of points
- * @param {number} factor - factor to smooth by
- * @param {number} trend - factor for the trend smoothing
- * @return {object} Object containing the forecast points, the residuals, the sum of squares of the residuals and the factor
+ * @returns {object} Object containing the forecast points, the residuals, the sum of squares of the residuals and the factor
  */
 ssci.fore.holt = function(){
     var data = [];
@@ -93,6 +90,11 @@ ssci.fore.holt = function(){
         
     }
     
+    /**
+     * Get or set the initial value for the level
+     * @param {number} [value] - The value for the level
+     * @returns Either the value for the level or the enclosing object
+     */
     retVar.initialLevel = function(value){
         if(!arguments.length){ return l[0]; }
         l = [];
@@ -102,6 +104,11 @@ ssci.fore.holt = function(){
         return retVar;
     };
     
+    /**
+     * Get or set the initial value for the trend
+     * @param {number} [value] - The value for the trend
+     * @returns Either the value for the trend or the enclosing object
+     */
     retVar.initialTrend = function(value){
         if(!arguments.length){ return t[0]; }
         t = [];
@@ -111,23 +118,43 @@ ssci.fore.holt = function(){
         return retVar;
     };
     
+    /**
+     * Define a function to convert the x data passed in to the function. The default function just takes the first number in the arrays of array of data points
+     * @param {function} [value] - A function to convert the x data for use in the function
+     * @returns The conversion function if no parameter is passed in, otherwise returns the enclosing object.
+     */
     retVar.x = function(value){
         if(!arguments.length){ return x_conv; }
         x_conv = value;
         return retVar;
     };
     
+    /**
+     * Define a function to convert the y data passed in to the function. The default function just takes the second number in the arrays of array of data points
+     * @param {function} [value] - A function to convert the y data for use in the function
+     * @returns The conversion function if no parameter is passed in, otherwise returns the enclosing object.
+     */
     retVar.y = function(value){
         if(!arguments.length){ return y_conv; }
         y_conv = value;
         return retVar;
     };
     
+    /**
+     * Input the data. The default format is as an array of arrays of x and y values i.e. [['x1','y1']['x2','y2']]
+     * @param value - the data
+     * @returns The enclosing object
+     */
     retVar.data = function(value){
         data = value;
         return retVar;
     };
     
+    /**
+     * Define or get the factor to smooth the data by
+     * @param {number} [value=0.3] - A number between 0 and 1 to smooth the data by
+     * @returns Either the factor or the enclosing object
+     */
     retVar.factor = function(value){
         if(!arguments.length){ return factor; }
         
@@ -148,16 +175,35 @@ ssci.fore.holt = function(){
         return retVar;
     };
     
+    /**
+     * Returns the smoothed data
+     * @returns The smoothed data
+     */
     retVar.output = function(){
         return output;
     };
+
+    /**
+     * Returns the residuals
+     * @returns The residuals
+     */
     retVar.residuals = function(){
         return resids;
     };
+
+    /**
+     * Returns the sum of squares of the residuals
+     * @returns The sum of squares of the residuals
+     */
     retVar.sumSquares = function(){
         return sumsq;
     };
     
+    /**
+     * Provide or get the trend factor
+     * @param {number} [value] - The trend factor
+     * @returns If no parameter is passed in then the current trend value. Otherwise it will return the enclosing object.
+     */
     retVar.trend = function(value){
         if(!arguments.length){ return trend; }
         
@@ -178,6 +224,11 @@ ssci.fore.holt = function(){
         return retVar;
     };
     
+    /**
+     * Provide a forecast of the function
+     * @param {number} [d] - The number of time units to forecast ahead. If the data is monthly then 2 is 2 months.
+     * @returns The forecast
+     */
     retVar.forecast = function(d){
         //Check that d is a number
         if(typeof d !== 'number'){
@@ -186,6 +237,23 @@ ssci.fore.holt = function(){
         //d=1 means one unit of time ahead. If the data is monthly, then d is in months
         var temp = l[l.length-1]+d*t[t.length-1];
         return temp;
+    };
+
+    /**
+     * Specify the function to calculate the initial trend value
+     * @param {'1' | '2' | '3' | '4'} [value='1'] - The function to calculate the initial value for the trend. The default is the average difference between the first 3 points
+     * @returns If no parameter is provided then the function type is provided otherwise the enclosing object is returned.
+     */
+    retVar.initialTrendCalculation = function(value){
+        if(!arguments.length){ return funcT; }
+        //Check that the function is valid
+        if(typeof funcs_T[value] !== 'function'){
+            throw new Error('Invalid function');
+        }
+        
+        funcT = value;
+        
+        return retVar;
     };
     
     return retVar;

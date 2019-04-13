@@ -1,9 +1,7 @@
 /**
  * Deseasonalise data based on taking the moving average
- * @param {array} dataArray - an array of points
  * @param {number} frequency - the number of points to average over
- * @param {boolean} lastN - true if calculating an average over the last n points, false for a central average 
- * @returns {array} - an array with the new points
+ * @returns {function} - the function to create the points
  */
 ssci.season.movingAverage = function(){
     
@@ -60,6 +58,11 @@ ssci.season.movingAverage = function(){
         }
     }
     
+    /**
+     * Get or set a boolean value to state whether the average is calculated over the last n points or as a central average.
+     * @param {boolean} value - true if calculating an average over the last n points, false for a central average.
+     * @returns If no parameter is passed in then the value is returned, otherwise returns the enclosing object
+     */
     sa.end = function(value){
         if(!arguments.length){ return lastN; }
         
@@ -73,27 +76,51 @@ ssci.season.movingAverage = function(){
         return sa;
     };
     
+    /**
+     * Returns the averaged data
+     * @returns The averaged data
+     */
     sa.output = function(){
         return output;
     };
     
+    /**
+     * Define a function to convert the x data passed in to the function. The default function just takes the first number in the arrays of array of data points
+     * @param {function} [value] - A function to convert the x data for use in the function
+     * @returns The conversion function if no parameter is passed in, otherwise returns the enclosing object.
+     */
     sa.x = function(value){
         if(!arguments.length){ return x_conv; }
         x_conv = value;
         return sa;
     };
     
+    /**
+     * Define a function to convert the y data passed in to the function. The default function just takes the second number in the arrays of array of data points
+     * @param {function} [value] - A function to convert the y data for use in the function
+     * @returns The conversion function if no parameter is passed in, otherwise returns the enclosing object.
+     */
     sa.y = function(value){
         if(!arguments.length){ return y_conv; }
         y_conv = value;
         return sa;
     };
     
+    /**
+     * Input the data. The default format is as an array of arrays of x and y values i.e. [['x1','y1']['x2','y2']]
+     * @param value - the data
+     * @returns The enclosing object
+     */
     sa.data = function(value){
         data = value;
         return sa;
     };
     
+    /**
+     * Get or set the frequency of the data series
+     * @param {number} [value] - The frequency of the data series i.e. if monthly then frequency is 12.
+     * @returns The frequency if no parameter is passed in, otherwise returns the enclosing object.
+     */
     sa.frequency = function(value){
         if(!arguments.length){ return frequency; }
         

@@ -2,9 +2,7 @@
  * Exponentially smooth a data series - data series should be evenly spaced in the x-coordinate
  * This is the exponentially weighted moving average rather than what is more generally known as exponential smoothing.
  * Only good for non-trended, non-seasonal data
- * @param {array} dataArray - an array of points
- * @param {number} factor - factor to smooth by
- * @returns {array} - an array with the new points
+ * @returns {function} - the function to create the points
  */
 ssci.smooth.EWMA = function(){
     
@@ -36,27 +34,51 @@ ssci.smooth.EWMA = function(){
         }
     }
     
+    /**
+     * Returns the smoothed data
+     * @returns The smoothed data
+     */
     sm.output = function(){
         return output;
     };
     
+    /**
+     * Define a function to convert the x data passed in to the function. The default function just takes the first number in the arrays of array of data points
+     * @param {function} [value] - A function to convert the x data for use in the function
+     * @returns The conversion function if no parameter is passed in, otherwise returns the enclosing object.
+     */
     sm.x = function(value){
         if(!arguments.length){ return x_conv; }
         x_conv = value;
         return sm;
     };
     
+    /**
+     * Define a function to convert the y data passed in to the function. The default function just takes the second number in the arrays of array of data points
+     * @param {function} [value] - A function to convert the y data for use in the function
+     * @returns The conversion function if no parameter is passed in, otherwise returns the enclosing object.
+     */
     sm.y = function(value){
         if(!arguments.length){ return y_conv; }
         y_conv = value;
         return sm;
     };
     
+    /**
+     * Input the data. The default format is as an array of arrays of x and y values i.e. [['x1','y1']['x2','y2']]
+     * @param value - the data
+     * @returns The enclosing object
+     */
     sm.data = function(value){
         data = value;
         return sm;
     };
     
+    /**
+     * Define or get the factor to smooth the data by
+     * @param {number} [value=0.3] - A number between 0 and 1 to smooth the data by
+     * @returns Either the factor or the enclosing object
+     */
     sm.factor = function(value){
         if(!arguments.length){ return factor; }
         

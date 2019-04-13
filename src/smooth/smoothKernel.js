@@ -1,9 +1,6 @@
 /** 
  * Take an array of points and returns a set of smoothed points by applying a filter (specified by the kernel function) to the data
- * @param {string} kernel - the smoothing kernel to use
- * @param {array} dataArray - an array of points
- * @param {number|array} scale - an array or number containing the scaling parameters of the kernel
- * @returns {array} - an array with the new points
+ * @returns {function} - the function to create the points
  */
 ssci.smooth.kernel = function(){
 
@@ -86,6 +83,11 @@ ssci.smooth.kernel = function(){
         }
     }
     
+    /**
+     * Define the scale for the kernel. This can take a number or an array of numbers. Generally the array will have the same number of values as the data array.
+     * @param {number|array} [value] - an array or number containing the scaling parameters of the kernel.
+     * @returns If no parameter is passed in then the scale is returned, otherwise returns the enclosing object.
+     */
     sk.scale = function(value){
         if(!arguments.length){ return scale; }
         scale = value;
@@ -93,6 +95,11 @@ ssci.smooth.kernel = function(){
         return sk;
     };
     
+    /**
+     * Define the kernel function to use in the smoothing function. The default is 'Gaussian'
+     * @param {'Uniform' | 'Triangle' | 'Epanechnikov' | 'Quartic' | Triweight | 'Logistic' | 'Cosine' | 'Gaussian' | 'Tricube' | 'Silverman'} [value='Gaussian'] - the smoothing kernel to use
+     * @returns The kernel if no parameter is passed in
+     */
     sk.kernel = function(value){
         if(!arguments.length){ return kernel; }
         //Check that the kernel is valid
@@ -105,22 +112,41 @@ ssci.smooth.kernel = function(){
         return sk;
     };
     
+    /**
+     * Define a function to convert the x data passed in to the kernel function. The default function just takes the first number in the arrays of array of data points
+     * @param {function} [value] - A function to convert the x data for use in the function
+     * @returns The conversion function if no parameter is passed in, otherwise returns the enclosing object.
+     */
     sk.x = function(value){
         if(!arguments.length){ return x_conv; }
         x_conv = value;
         return sk;
     };
     
+    /**
+     * Define a function to convert the y data passed in to the kernel function. The default function just takes the second number in the arrays of array of data points
+     * @param {function} [value] - A function to convert the y data for use in the function
+     * @returns The conversion function if no parameter is passed in, otherwise returns the enclosing object.
+     */
     sk.y = function(value){
         if(!arguments.length){ return y_conv; }
         y_conv = value;
         return sk;
     };
     
+    /**
+     * Returns the smoothed data
+     * @returns The smoothed data
+     */
     sk.output = function(){
         return output;
     };
-        
+
+    /**
+     * Input the data. The default format is as an array of arrays of x and y values i.e. [['x1','y1']['x2','y2']]
+     * @param value - the data
+     * @returns The enclosing object
+     */
     sk.data = function(value){
 		data = value;
 		

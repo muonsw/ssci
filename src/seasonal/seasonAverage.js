@@ -1,8 +1,6 @@
 /**
  * Deseasonalise data based on the average for the period (specified by label range).
- * @param {array} dataArray - an array of points
- * @param {array} labels - an array holding the labels that specify the period e.g. Jan, Feb, Mar etc.
- * @returns {array} - an array with the new points 
+ * @returns {function} - the function to average the data
  */
 ssci.season.average = function(){
 
@@ -75,28 +73,51 @@ ssci.season.average = function(){
         }
     }
     
+    /**
+     * Pass in an array of data labels that define the period
+     * @param {array} value - an array holding the labels that specify the period e.g. Jan, Feb, Mar etc.
+     */
     sa.labels = function(value){
         labels = value;
         
         return sa;
     };
     
+    /**
+     * Returns the averaged data
+     * @returns The averaged data
+     */
     sa.output = function(){
         return output;
     };
     
+    /**
+     * Define a function to convert the x data passed in to the function. The default function just takes the first number in the arrays of array of data points
+     * @param {function} [value] - A function to convert the x data for use in the function
+     * @returns The conversion function if no parameter is passed in, otherwise returns the enclosing object.
+     */
     sa.x = function(value){
         if(!arguments.length){ return x_conv; }
         x_conv = value;
         return sa;
     };
     
+    /**
+     * Define a function to convert the y data passed in to the function. The default function just takes the second number in the arrays of array of data points
+     * @param {function} [value] - A function to convert the y data for use in the function
+     * @returns The conversion function if no parameter is passed in, otherwise returns the enclosing object.
+     */
     sa.y = function(value){
         if(!arguments.length){ return y_conv; }
         y_conv = value;
         return sa;
     };
     
+    /**
+     * A function to set the data. The default format is as an array of arrays of x and y values i.e. [['x1','y1']['x2','y2']]
+     * @param value - the data
+     * @returns The enclosing object
+     */
     sa.data = function(value){
         data = value;
         return sa;

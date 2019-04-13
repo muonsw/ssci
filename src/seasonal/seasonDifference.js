@@ -1,8 +1,6 @@
 /**
  * Deseasonalise the data by differencing the data and adding the moving average
- * @param {array} dataArray - an array of points
- * @param {number} frequency - the number of points to difference over
- * @returns {array} - an array with the new points
+ * @returns {function} - the function to create the points
  */
 ssci.season.difference = function(){
     
@@ -47,27 +45,50 @@ ssci.season.difference = function(){
         }
     }
     
+    /**
+     * Returns the deseasonalised data
+     * @returns The deseasonalised data
+     */
     sa.output = function(){
         return output;
     };
     
+    /**
+     * Define a function to convert the x data passed in to the function. The default function just takes the first number in the arrays of array of data points
+     * @param {function} [value] - A function to convert the x data for use in the function
+     * @returns The conversion function if no parameter is passed in, otherwise returns the enclosing object.
+     */
     sa.x = function(value){
         if(!arguments.length){ return x_conv; }
         x_conv = value;
         return sa;
     };
     
+    /**
+     * Define a function to convert the y data passed in to the function. The default function just takes the second number in the arrays of array of data points
+     * @param {function} [value] - A function to convert the y data for use in the function
+     * @returns The conversion function if no parameter is passed in, otherwise returns the enclosing object.
+     */
     sa.y = function(value){
         if(!arguments.length){ return y_conv; }
         y_conv = value;
         return sa;
     };
     
+    /**
+     * Input the data. The default format is as an array of arrays of x and y values i.e. [['x1','y1']['x2','y2']]
+     * @param value - the data
+     * @returns The enclosing object
+     */
     sa.data = function(value){
         data = value;
         return sa;
     };
     
+    /**
+     * Define the frequency of the data series
+     * @param {number} frequency - the number of points to difference over
+     */
     sa.frequency = function(value){
         if(!arguments.length){ return frequency; }
         

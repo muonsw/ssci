@@ -1,7 +1,5 @@
 /**
  * Fit a polynomial to the set of points passed to the function i.e. least squares regression but return object and use Big objects
- * @param {array} dataArray - an array of points
- * @param {number} order - the order of the polynomial i.e. 2 for quadratic, 1 for linear etc.
  * @returns {object} object containing an array of points ('x' coordinate in the first element of the point), array of constants for the polynomial and array of residuals
  */
 ssci.reg.polyBig = function(){
@@ -104,6 +102,11 @@ ssci.reg.polyBig = function(){
         }
     }
     
+    /**
+     * Get or set the order of the polynomial
+     * @param {number} [value] - the order of the polynomial i.e. 2 for quadratic, 1 for linear etc.
+     * @returns If no parameter is passed in then return the order, otherwise return the enclosing object
+     */
     rp.order = function(value){
         if(!arguments.length){ return order; }
         
@@ -119,36 +122,67 @@ ssci.reg.polyBig = function(){
         return rp;
     };
     
+    /**
+     * Get an array of the input x values with the fitted y values
+     * @returns An array of fitted values
+     */
     rp.output = function(){
         return output;
     };
     
+    /**
+     * Define a function to convert the x data passed in to the function. The default function just takes the first number in the arrays of array of data points.
+     * @param {function} [value] - A function to convert the x data for use in the function.
+     * @returns The conversion function if no parameter is passed in, otherwise returns the enclosing object.
+     */
     rp.x = function(value){
         if(!arguments.length){ return x_conv; }
         x_conv = value;
         return rp;
     };
     
+    /**
+     * Define a function to convert the y data passed in to the function. The default function just takes the second number in the arrays of array of data points
+     * @param {function} [value] - A function to convert the y data for use in the function
+     * @returns The conversion function if no parameter is passed in, otherwise returns the enclosing object.
+     */
     rp.y = function(value){
         if(!arguments.length){ return y_conv; }
         y_conv = value;
         return rp;
     };
     
+    /**
+     * Function to set the data used
+     * @param {array} value - an array of points
+     * @returns The enclosing object
+     */
     rp.data = function(value){
         data = value;
         return rp;
     };
     
+    /**
+     * Returns the residuals after the fitted polynomial has been created
+     * @returns The residuals
+     */
     rp.residuals = function(){
         return resids;
     };
     
+    /**
+     * Returns the constants of the fitted polynomial
+     * @returns An array of constants
+     */
     rp.constants = function(){
         return con2;
     };
     
-    //Predict a new figure given an x value
+    /**
+     * Predict a new figure given an x value
+     * @param {number} d - The x value to return a y value for
+     * @returns The fitted number
+     */
     rp.forecast = function(d){
         //Check that d is a number
         if(typeof d !== 'number'){

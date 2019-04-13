@@ -1,5 +1,6 @@
 /** 
  * Take an array of points and returns a set of smoothed points by applying a filter to the data
+ * @returns {function} - the function to create the points
  */
 ssci.smooth.filter = function(){
     
@@ -96,27 +97,51 @@ ssci.smooth.filter = function(){
         
     }
     
+    /**
+     * Returns the smoothed data
+     * @returns The smoothed data
+     */
     sm.output = function(){
         return output;
     };
     
+    /**
+     * Define a function to convert the x data passed in to the function. The default function just takes the first number in the arrays of array of data points
+     * @param {function} [value] - A function to convert the x data for use in the function
+     * @returns The conversion function if no parameter is passed in, otherwise returns the enclosing object.
+     */
     sm.x = function(value){
         if(!arguments.length){ return x_conv; }
         x_conv = value;
         return sm;
     };
     
+    /**
+     * Define a function to convert the y data passed in to the function. The default function just takes the second number in the arrays of array of data points
+     * @param {function} [value] - A function to convert the y data for use in the function
+     * @returns The conversion function if no parameter is passed in, otherwise returns the enclosing object.
+     */
     sm.y = function(value){
         if(!arguments.length){ return y_conv; }
         y_conv = value;
         return sm;
     };
     
+    /**
+     * Input the data. The default format is as an array of arrays of x and y values i.e. [['x1','y1']['x2','y2']]
+     * @param value - the data
+     * @returns The enclosing object
+     */
     sm.data = function(value){
         data = value;
         return sm;
     };
     
+    /**
+     * Set or get the filter to apply to the data
+     * @param {array} [value] - An array containing the numbers to apply as a filter
+     * @returns Either the filter or the enclosing object
+     */
     sm.filter = function(value){
         //Set the filter
         if(!arguments.length){ return filter; }
@@ -131,6 +156,11 @@ ssci.smooth.filter = function(){
         return sm;
     };
     
+    /**
+     * Set where to apply the filter
+     * @param {array} [value] - An array containing the two x-values between which the fillter will be applied.
+     * @returns Either the limits array or the enclosing object
+     */
     sm.limits = function(value){
         //Set limits of filter i.e. where to apply it
         if(!arguments.length){ return [m1,m2]; }
@@ -153,6 +183,8 @@ ssci.smooth.filter = function(){
     
     /**
      * Set whether values are calculated for the end of a series - false to calculate them
+     * @param {boolean} [value] - Should the ends be removed?
+     * @returns Either the value or the enclosing object
      */
     sm.end = function(value){
         if(!arguments.length){ return removeEnds; }
@@ -170,6 +202,7 @@ ssci.smooth.filter = function(){
     /**
      * Calculate gain
      * @param {number} d The period to calculate the gain for
+     * @returns The gain
      */
     sm.gain = function(d){
         if(typeof d !== 'number'){ throw new Error('Input must be a number'); }
@@ -191,6 +224,7 @@ ssci.smooth.filter = function(){
     /**
      * Calculate the phase shift caused by the filter
      * @param {number} d The period to calculate the phase shift for
+     * @returns The phase shift
      */
     sm.phaseShift = function(d){
         if(typeof d !== 'number'){ throw new Error('Input must be a number'); }
@@ -228,7 +262,8 @@ ssci.smooth.filter = function(){
 
     /**
      * Set or get the function to calculate the weights for the start of the data series if 'end' is false
-     * @param {function} 
+     * @param {function} value - The function to use to calculate the weights to use - default is an asymmetric Henderson filter
+     * @returns Either the value or the enclosing object
      */
     sm.left = function(value){
         if(!arguments.length){ return l_filt; }
@@ -238,6 +273,8 @@ ssci.smooth.filter = function(){
     
     /**
      * Set or get the function to calculate the weights for the end of the data series if 'end' is false
+     * @param {function} value - The function to use to calculate the weights to use - default is an asymmetric Henderson filter
+     * @returns Either the value or the enclosing object
      */
     sm.right = function(value){
         if(!arguments.length){ return r_filt; }

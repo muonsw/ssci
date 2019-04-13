@@ -1,5 +1,3 @@
-
-
 /**
  * Convert an object to an array of points (i.e. x and y coordinates)
  * @param {object} data - object holding the data - generally an array of objects in the D3 style

@@ -1,10 +1,7 @@
 /**
  * Calculates the partial auto-correlation
  * Formula taken from https://www.empiwifo.uni-freiburg.de/lehre-teaching-1/winter-term/dateien-financial-data-analysis/handout-pacf.pdf
- * @param {array} dataArray - an array of points
- * @param {number} maxlag - maximum lag to calculate auto correlation for
- * @param {number} diffed - how many times the data has been differenced
- * @returns {array} an array of points with [lag, pacf]
+ * @returns {function} - the function to create the points
  */
 ssci.ts.pacf = function(){
     
@@ -115,27 +112,51 @@ ssci.ts.pacf = function(){
         }
     }
     
+    /**
+     * Returns the correlation array
+     * @returns The correlation array
+     */
     run.output = function(){
         return output;
     };
     
+    /**
+     * Define a function to convert the x data passed in to the function. The default function just takes the first number in the arrays of array of data points
+     * @param {function} [value] - A function to convert the x data for use in the function
+     * @returns The conversion function if no parameter is passed in, otherwise returns the enclosing object.
+     */
     run.x = function(value){
         if(!arguments.length){ return x_conv; }
         x_conv = value;
         return run;
     };
     
+    /**
+     * Define a function to convert the y data passed in to the function. The default function just takes the second number in the arrays of array of data points
+     * @param {function} [value] - A function to convert the y data for use in the function
+     * @returns The conversion function if no parameter is passed in, otherwise returns the enclosing object.
+     */
     run.y = function(value){
         if(!arguments.length){ return y_conv; }
         y_conv = value;
         return run;
     };
     
+    /**
+     * Input the data. The default format is as an array of arrays of x and y values i.e. [['x1','y1']['x2','y2']]
+     * @param value - the data
+     * @returns The enclosing object
+     */
     run.data = function(value){
         data = value;
         return run;
     };
     
+    /**
+     * Get or set the maximum value of the lag to calculate the partial acf for
+     * @param {number} [value] - The maximum lag
+     * @returns The maximmum lag or the enclosing object
+     */
     run.maxlag = function(value){
         if(!arguments.length){ return maxlag; }
         
@@ -148,6 +169,11 @@ ssci.ts.pacf = function(){
         return run;
     };
     
+    /**
+     * Get or set the number of times to difference the data
+     * @param {number} [value] - The number of times to difference the data
+     * @returns The number of times to difference the data or the enclosing object.
+     */
     run.diff = function(value){
         if(!arguments.length){ return diffed; }
         

@@ -46,23 +46,43 @@ ssci.fore.expon = function(){
         }
     }
     
+    /**
+     * Define a function to convert the x data passed in to the function. The default function just takes the first number in the arrays of array of data points
+     * @param {function} [value] - A function to convert the x data for use in the function
+     * @returns The conversion function if no parameter is passed in
+     */
     retVar.x = function(value){
         if(!arguments.length){ return x_conv; }
         x_conv = value;
         return retVar;
     };
     
+    /**
+     * Define a function to convert the y data passed in to the function. The default function just takes the second number in the arrays of array of data points
+     * @param {function} [value] - A function to convert the y data for use in the function
+     * @returns The conversion function if no parameter is passed in
+     */
     retVar.y = function(value){
         if(!arguments.length){ return y_conv; }
         y_conv = value;
         return retVar;
     };
     
+    /**
+     * Input the data. The default format is as an array of arrays of x and y values i.e. [['x1','y1']['x2','y2']]
+     * @param value - the data
+     * @returns The enclosing function
+     */
     retVar.data = function(value){
         data = value;
         return retVar;
     };
     
+    /**
+     * Define or get the factor to smooth the data by
+     * @param {number} [value=0.3] - A number between 0 and 1 to smooth the data by
+     * @returns Either the factor or the enclosing object
+     */
     retVar.factor = function(value){
         if(!arguments.length){ return factor; }
         
@@ -83,9 +103,18 @@ ssci.fore.expon = function(){
         return retVar;
     };
     
+    /**
+     * Returns the smoothed data
+     * @returns The smoothed data
+     */
     retVar.output = function(){
         return output;
     };
+
+    /**
+     * Returns the residuals
+     * @returns The residuals
+     */
     retVar.residuals = function(){
         return resids;
     };
